@@ -1,15 +1,18 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@stevederico/skateboard-ui/shadcn/ui/sheet';
 import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
-import { ExternalLink, MapPin, Clock, DollarSign, Users } from 'lucide-react';
+import { ExternalLink, MapPin, Clock, DollarSign, Users, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useFavorites } from './useFavorites.js';
 
 export default function SchoolDetailSheet({ school, isOpen, onClose }) {
   const navigate = useNavigate();
+  const { toggle, isFavorite } = useFavorites();
 
   if (!school) return null;
 
   const isPreschool = school.school_type === 'preschool';
+  const fav = isFavorite(school);
   const hasHours = school.hours && school.hours !== 'Not publicly available' && school.hours !== 'Not available' && school.hours !== 'N/A';
   const hasTuition = school.tuition && school.tuition !== 'Not publicly available' && school.tuition !== 'N/A';
 
@@ -51,8 +54,17 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
             </Button>
           )}
           <Button variant="outline" className="flex-1" onClick={handleViewOnMap}>
-            <MapPin className="size-3.5 mr-1.5" aria-hidden="true" />
+            <MapPin className="size-3.5" aria-hidden="true" />
             Map
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => toggle(school)}
+            aria-label={fav ? `Unfavorite ${school.name}` : `Favorite ${school.name}`}
+            aria-pressed={fav}
+          >
+            <Heart className={`size-4 ${fav ? 'fill-red-500 text-red-500' : ''}`} aria-hidden="true" />
           </Button>
         </div>
       </SheetContent>

@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@stevederico/skateboard-ui/shadcn/ui/card';
 import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
-import { Clock, DollarSign, Users } from 'lucide-react';
+import { Clock, DollarSign, Users, Heart } from 'lucide-react';
+import { useFavorites } from './useFavorites.js';
 
 /**
  * Determine if a school is public based on tuition starting with "Public".
@@ -13,6 +14,13 @@ function isPublicSchool(school) {
 export default function SchoolCard({ school, onClick }) {
   const isPreschool = school.school_type === 'preschool';
   const isPublic = isPublicSchool(school);
+  const { toggle, isFavorite } = useFavorites();
+  const fav = isFavorite(school);
+
+  function handleFavorite(e) {
+    e.stopPropagation();
+    toggle(school);
+  }
 
   return (
     <Card
@@ -26,9 +34,21 @@ export default function SchoolCard({ school, onClick }) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-label-lg leading-snug">{school.name}</CardTitle>
-          <Badge variant="secondary" className="shrink-0 text-copy-sm">
-            {isPreschool ? 'Preschool' : 'Upper'}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge variant="secondary" className="text-copy-sm">
+              {isPreschool ? 'Preschool' : 'Upper'}
+            </Badge>
+            <button
+              type="button"
+              onClick={handleFavorite}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="cursor-pointer rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label={fav ? `Unfavorite ${school.name}` : `Favorite ${school.name}`}
+              aria-pressed={fav}
+            >
+              <Heart className={`size-4 ${fav ? 'fill-red-500 text-red-500' : ''}`} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-1.5 pt-1">
           {school.neighborhood && (

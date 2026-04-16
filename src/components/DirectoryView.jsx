@@ -3,10 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { Spinner } from '@stevederico/skateboard-ui/shadcn/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/shadcn/ui/toggle-group';
 import { useSchools } from './useSchools.js';
+import { useFavorites, favoriteKey } from './useFavorites.js';
 import FilterBar from './FilterBar.jsx';
 import SchoolCard from './SchoolCard.jsx';
 import SchoolDetailSheet from './SchoolDetailSheet.jsx';
-import { School, List, Map as MapIcon } from 'lucide-react';
+import { School, List, Map as MapIcon, Heart } from 'lucide-react';
+import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 
 const NeighborhoodMap = lazy(() => import('./NeighborhoodMap.jsx'));
 
@@ -16,9 +18,11 @@ const NeighborhoodMap = lazy(() => import('./NeighborhoodMap.jsx'));
  */
 export default function DirectoryView() {
   const { schools, neighborhoods, programTypes, isLoading, error, filters, setFilters } = useSchools();
+  const { favorites } = useFavorites();
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'map' ? 'map' : 'list';
+  const favoritesOnly = searchParams.get('favorites') === '1';
 
   const highlightId = useMemo(() => {
     const id = searchParams.get('highlight');
@@ -26,15 +30,26 @@ export default function DirectoryView() {
     return id && type ? `${type}-${id}` : null;
   }, [searchParams]);
 
-  // Public/private client-side filter — sector is derived from tuition only
-  // (tuition "Public (free)"). Program type describes grade levels, not sector.
+  // Client-side filters: sector (public/private) from tuition, and favorites-only.
   const filteredSchools = useMemo(() => {
-    if (!filters.sector) return schools;
-    const isPublic = (s) => (s.tuition || '').trim().startsWith('Public');
-    if (filters.sector === 'public') return schools.filter(isPublic);
-    if (filters.sector === 'private') return schools.filter((s) => !isPublic(s));
-    return schools;
-  }, [schools, filters.sector]);
+    let list = schools;
+    if (filters.sector) {
+      const isPublic = (s) => (s.tuition || '').trim().startsWith('Public');
+      if (filters.sector === 'public') list = list.filter(isPublic);
+      else if (filters.sector === 'private') list = list.filter((s) => !isPublic(s));
+    }
+    if (favoritesOnly) {
+      list = list.filter((s) => favorites.has(favoriteKey(s)));
+    }
+    return list;
+  }, [schools, filters.sector, favoritesOnly, favorites]);
+
+  function toggleFavoritesOnly() {
+    const next = new URLSearchParams(searchParams);
+    if (favoritesOnly) next.delete('favorites');
+    else next.set('favorites', '1');
+    setSearchParams(next, { replace: true });
+  }
 
   function setView(values) {
     // base-ui ToggleGroup passes an array; keep the last-selected value and
@@ -58,6 +73,16 @@ export default function DirectoryView() {
             programTypes={programTypes}
           />
         </div>
+        <Button
+          variant={favoritesOnly ? 'default' : 'outline'}
+          size="icon"
+          onClick={toggleFavoritesOnly}
+          aria-label={favoritesOnly ? 'Show all schools' : 'Show favorites only'}
+          aria-pressed={favoritesOnly}
+          title={favoritesOnly ? 'Show all schools' : 'Show favorites only'}
+        >
+          <Heart className={`size-4 ${favoritesOnly ? 'fill-current' : ''}`} aria-hidden="true" />
+        </Button>
         <ToggleGroup value={[view]} onValueChange={setView} variant="outline" aria-label="View mode">
           <ToggleGroupItem value="list" aria-label="List view">
             <List className="size-4" aria-hidden="true" />
@@ -84,9 +109,19 @@ export default function DirectoryView() {
 
       {!isLoading && !error && view === 'list' && filteredSchools.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <School className="size-12 text-muted-foreground" aria-hidden="true" />
-          <p className="text-label-lg">No schools match your filters</p>
-          <p className="text-copy-md text-muted-foreground">Try adjusting your search or filters</p>
+          {favoritesOnly && favorites.size === 0 ? (
+            <>
+              <Heart className="size-12 text-muted-foreground" aria-hidden="true" />
+              <p className="text-label-lg">No favorites yet</p>
+              <p className="text-copy-md text-muted-foreground">Tap the heart icon on a school to save it here</p>
+            </>
+          ) : (
+            <>
+              <School className="size-12 text-muted-foreground" aria-hidden="true" />
+              <p className="text-label-lg">No schools match your filters</p>
+              <p className="text-copy-md text-muted-foreground">Try adjusting your search or filters</p>
+            </>
+          )}
         </div>
       )}
 
