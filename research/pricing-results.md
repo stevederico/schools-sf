@@ -1,6 +1,95 @@
 # Pricing Research Results
 
-Research completed: 2026-04-15
+## Pass 2 — Broad Deep Dive (2026-04-15)
+
+Second research pass covering schools added since Pass 1 (Marina/North Beach/Russian Hill preschools, SFUSD Early Education Schools, high schools) plus notes backfill for previously-priced schools.
+
+### Summary
+
+**Database state after Pass 2:**
+- Preschools: 52 total — 32 with pricing, 20 "Not publicly available", 0 missing notes
+- Upper schools: 40 total — 40 with pricing, 0 missing notes
+
+**Pass 2 changes:**
+
+| Group | Schools touched | Tuition updated | Notes updated |
+|---|---|---|---|
+| SFUSD Early Education (ids 41-52) | 12 | 12 | 0 |
+| Corporate/institutional preschools | 8 | 5 | 8 |
+| Small family daycares | 11 | 1 | 11 |
+| Preschool notes backfill | 3 | 0 | 3 |
+| Upper schools (remaining) | 6 | 1 | 5 |
+| **Totals** | **40** | **19** | **27** |
+
+### SFUSD Early Education Schools (ids 41-52)
+
+All 12 schools follow SFUSD's standard Early Education tuition policy. Researched once, applied to all.
+
+- **Tuition (all 12):** `Free via ELFA (SF residents ≤110% AMI) or $2,200/month tuition-based` (was: `Public (free)`)
+- **Notes:** unchanged — each school already had specific program notes
+- **Sources:**
+  - https://www.sfusd.edu/early-education/pre-kindergarten/early-education-programs-cost-fees
+  - https://sfdec.org/early-learning-for-all/ — ELFA eligibility tiers
+
+### Corporate/Institutional Preschools
+
+| ID | School | Tuition | Notes | Source(s) |
+|---|---|---|---|---|
+| 33 | Helen Diller Family Preschool | **$28,865/year core + $9,405 extended** (was: Not publicly available) | Updated | https://www.jccsf.org/program/helen-diller-family-preschool/ |
+| 36 | Rosenberg Early Childhood Center | **$40,095/year** (was: Not publicly available) | Updated | https://www.jccsf.org/program/rosenberg-early-childhood-center/ |
+| 22 | The Little School | **$0 via ELFA (≤110% AMI); sliding scale otherwise** | Updated | https://www.littleschool.org/tuition |
+| 20 | TEL HI Preschool | **Sliding scale; free via ELFA** | Updated | https://www.telhi.org/services/early-childhood-education/ |
+| 6 | Cow Hollow School | **Duplicate note — rebranded to Cypress School SF in Dec 2024** | Updated | https://www.cypressschoolsf.org/about-us |
+| 2 | Bright Horizons at Letterman | Not publicly available (contact for quote) | Updated | Search + brighthorizons.com |
+| 30 | Building Kidz Pacific Heights | Not publicly available | Updated | https://www.buildingkidzschool.com/schools/pac-heights/ |
+| 38 | UCSF Laurel Heights CDC | Not publicly available (NAEYC-accredited) | Updated | https://child-care-preschool.brighthorizons.com/ca/sanfrancisco/laurelheights |
+
+### Small Family Daycares
+
+| ID | School | Tuition | Notes |
+|---|---|---|---|
+| 18 | Seabird Preschool | **$1,270-$2,425/month (2025-26)** — full-day/half-day, 2-5 days/week | Updated with current rates + enrollment fees |
+| 1 | Bluebell Kids Daycare | Not publicly available | Enriched with contact, hours, address |
+| 9 | Kids Kingdom SF | Not publicly available | Enriched — Christian preschool on Lombard St |
+| 25 | Marina Tots | Not publicly available | Enriched — boutique Marina preschool since 1996 |
+| 26 | Marina Children's Center | Not publicly available | Enriched — 3219A Laguna St, ages 2.5-6, full-day |
+| 28 | Russian Hill Academy | Not publicly available | Enriched — Mandarin immersion (distinct from Russian Hill School) |
+| 31 | Sunshine Adventures | Accepts ELS/ELFA vouchers | Enriched — Montessori-inspired, ELS-eligible |
+| 35 | St. James Preschool | Not publicly available | Enriched — nonprofit since 1963, Inner Richmond |
+| 37 | Little Seeds Childcare | Not publicly available | Enriched — 4355 Anza St, ages 5mo-5yr |
+| 39 | Ladybug Childcare | Operating status uncertain (closing reported) | Flagged closure risk; domain for sale |
+| 40 | Kids Club Preschool | Not publicly available | Enriched — Marina location since 1989 |
+
+**Sources:** school websites (where reachable) + WebSearch fallbacks. Marina Tots and Marina Children's Center sites refused connections; relied on search results.
+
+### Preschool Notes Backfill (already priced)
+
+| ID | School | Notes added |
+|---|---|---|
+| 3 | Calvary Nursery School | 70+ years at 2515 Fillmore; play-based; offers early care + summer |
+| 7 | Cypress School SF | Formerly Cow Hollow School (rebranded Dec 2024); play-based, nature-focused at Presidio |
+| 16 | Pac Heights Kidz Preschool | In-home preschool at Pine & Divisadero; project-based + Spanish/music/yoga/soccer |
+
+### Upper Schools (remaining)
+
+| ID | School | Tuition | Notes | Source |
+|---|---|---|---|---|
+| 46 | Archbishop Riordan High School | **$28,000/year (2025-26)** + $1,200 registration (was: Not publicly available) | Updated | https://www.riordanhs.org/admissions/tuition-and-financial-aid |
+| 4 | Presidio Knolls School | — | Mandarin immersion PreK-8, CAIS + WASC accredited | https://www.presidioknolls.org |
+| 5 | Ecole Notre Dame des Victoires | — | Catholic TK-8, Marist Charism, French tradition | https://www.ndvsf.org/ |
+| 6 | Adda Clevenger School | — | Arts-integrated TK-8, two campuses, 7:1 ratio | https://www.addaclevenger.org/about-us/ |
+| 8 | Dr. William L. Cobb Elementary | — | Public SFUSD K-5, Pacific Heights | (context) |
+| 41 | Presidio Hill School | — | Progressive K-8, 106+ years, DEIJ focus, Presidio-adjacent | https://www.presidiohill.org |
+
+---
+
+## Pass 1 — Original Research (archived)
+
+## Preschools
+
+---
+
+## Pass 1 — Original Research (archived)
 
 ## Preschools
 

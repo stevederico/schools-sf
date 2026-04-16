@@ -1,93 +1,91 @@
-# Spec — Preschool & Upper School Pricing Research
+# Spec — Schools Deep Research (Broad Pass)
 
 ## Goal
 
-Research and update tuition/pricing for every school in the SQLite database that currently has "Not publicly available", "Inquire", or no pricing data.
+Deep research every school in the database — both preschools and upper schools — to enrich tuition AND notes with verifiable information from primary sources. This is the **broad pass**; a follow-up spec will narrow in on gaps.
 
 ## Database
 
 - Path: `backend/databases/preschools.db`
-- Tables: `preschools` (24 rows), `upperschools` (31 rows)
-- Schema: `tuition TEXT` column stores pricing
+- Tables: `preschools` (~52 rows), `upperschools` (~40 rows)
+- Relevant columns:
+  - `name` — school name
+  - `url` — official website (may be `N/A`)
+  - `address` — physical address
+  - `tuition` — pricing text (may be `Not publicly available`)
+  - `notes` — free-form research notes (may be NULL)
 
-## Rules
+## Rules — NON-NEGOTIABLE
 
-1. **Skip schools that already have pricing** — if `tuition` contains a dollar amount (e.g. "$16,350-$22,000/year"), leave it untouched
-2. **Never estimate or guess** — only record pricing found from a verifiable source
-3. **Source required** — when updating pricing, include the source URL in the research output
-4. **If pricing can't be found**, update tuition to "Not publicly available" (leave as-is if already set)
-5. **Use the school's own website first** (the `url` column), then try web search as a fallback
-6. **Schools with `N/A` as URL** — use web search to find official site and pricing
+1. **Never estimate or guess.** If a fact isn't on a primary source, it doesn't go in the DB.
+2. **Source required for every update.** Log the URL in the results file. No source = no update.
+3. **Primary sources only:** the school's own website, SFUSD pages for public schools, annual reports, official admissions pages. Avoid Niche.com, GreatSchools rankings, Reddit, random blogs.
+4. **Leave existing pricing alone** if it already contains a dollar amount — only replace if the new source is clearly more current AND the old value is obviously stale.
+5. **Rate limiting:** respect external APIs. Exponential backoff (1s → 2s → 4s) on 429/5xx. Max 3-5 retries per request.
+6. **Batch commits:** after every ~10 schools researched, commit progress to the DB and to the results file so work isn't lost.
+
+## What to Research (Per School)
+
+For each school, try to capture:
+
+**Tuition** — target column `tuition`
+- Annual tuition range for the ages/grades served
+- Note if sliding-scale, subsidy-eligible (e.g., SF Preschool for All), or public (free)
+- Format: `$XX,XXX-$YY,YYY/year` or `Public (free)` or `Sliding scale: $X-$Y` or `Not publicly available`
+
+**Notes** — target column `notes` (concise, 2-4 sentences)
+- Program philosophy / approach (Reggio Emilia, Montessori, play-based, classical, IB, etc.)
+- Accreditation (WASC, CAIS, NAEYC, etc.)
+- Schedule / calendar highlights (half-day vs. full-day, year-round vs. academic)
+- Distinctive offerings (Spanish/Mandarin immersion, outdoor programs, faith-based, etc.)
+- Admissions notes (rolling vs. January deadline, tour requirements, sibling priority)
+- Waitlist reality if publicly stated (e.g., "currently full through 2027")
 
 ## Process
 
-For each school where tuition is "Not publicly available", "Inquire", or similar:
+Work through schools in this order to maximize hit rate:
 
-1. Visit the school's website (from `url` column) and look for tuition/pricing pages
-2. If not found on website, web search for `"<school name>" tuition <current year>`
-3. If pricing is found:
-   - Update the `tuition` column in the database via SQL
-   - Log: school name, new tuition value, source URL
-4. If pricing is NOT found:
-   - Log: school name, "Not publicly available", sources checked
-5. Move to the next school
+1. **Schools with `url` and no dollar amount in `tuition`** — visit the site first.
+2. **Schools with `url = 'N/A'`** — web search `"<school name>" San Francisco tuition` and `"<school name>" San Francisco admissions`.
+3. **Schools with existing tuition but no notes** — visit the site to populate notes only; don't touch tuition unless obviously wrong.
 
-## Schools to Research
+For each school:
 
-### Preschools (skip if already priced)
-- ID 1: Bluebell Kids Daycare
-- ID 2: Bright Horizons at Letterman
-- ID 4: Chibi Chan Preschool
-- ID 5: Claudette's Family Daycare
-- ID 6: Cow Hollow School
-- ID 8: Hungry Caterpillars (HC Education)
-- ID 9: Kids Kingdom SF
-- ID 10: L'Academy Schools Nob Hill
-- ID 11: Laura Vicuña Pre-Kindergarten
-- ID 12: Laurel Hill Nursery School
-- ID 13: Little Bee Preschool
-- ID 14: Little Gators Preschool
-- ID 15: North Beach Kids
-- ID 17: Playgroup
-- ID 18: Seabird Preschool
-- ID 19: Spire School
-- ID 20: TEL HI Preschool
-- ID 21: TelHi Co-op
-- ID 22: The Little School
-- ID 23: The Serra Preschool
-- ID 24: Tiny Giants SF
+1. `WebSearch` the school name + "tuition" + "San Francisco" to find authoritative pages.
+2. `WebFetch` the most likely admissions/tuition page from the results.
+3. Extract tuition and program notes from the fetched content.
+4. Update the DB via SQL:
+   ```sql
+   UPDATE preschools SET tuition = '...', notes = '...' WHERE id = ?;
+   UPDATE upperschools SET tuition = '...', notes = '...' WHERE id = ?;
+   ```
+5. Append a row to `research/pricing-results.md` with school name, tuition found (or "Not publicly available"), notes summary, and source URL(s).
 
-### Upper Schools (skip if already priced)
-- ID 1: Bay School of San Francisco
-- ID 2: Sacred Heart Cathedral Prep
-- ID 3: Drew School
-- ID 7: Brightworks School
-- ID 9: St. Vincent de Paul School (SVDP)
-- ID 10: Hamlin School
-- ID 14: Cathedral School for Boys
-- ID 15: Children's Day
-- ID 16: Chinese American
-- ID 17: Convent of the Sacred Heart
-- ID 18: French American
-- ID 19: The Hamlin School
-- ID 20: Katherine Del Mar Burke School
-- ID 21: Kittredge School
-- ID 22: Live Oak School
-- ID 24: Marin Country Day School
-- ID 25: Marin Primary and Middle School
-- ID 26: Mount Tam
-- ID 29: San Francisco Day School
-- ID 30: San Francisco Friends
-- ID 31: Saint Vincent De Paul
-- ID 32: Saints Peter and Paul
-- ID 33: St. Brigids
-- ID 34: Stuart Hall
-- ID 40: Town School
+## Guardrails
+
+- **Never loop external API calls without delays.** 1 second minimum between web fetches to the same domain.
+- **Circuit breaker:** if 3 consecutive WebFetches fail on different schools, pause and report the issue before continuing.
+- **Do not overwrite good data with empty data.** If a school already has notes and the research turned up nothing new, leave notes alone.
+- **Log every school, even if nothing changed.** The results file is the audit trail.
 
 ## Output
 
-When complete, produce `research/pricing-results.md` summarizing:
-- Each school researched
-- Tuition found (or not)
-- Source URL
-- Whether the database was updated
+`research/pricing-results.md` — one section per school:
+
+```markdown
+### <School Name> (id=<N>, type=<preschool|upperschool>)
+- **Tuition:** <value> (was: <previous>)
+- **Notes:** <summary of updates to notes, or "no change">
+- **Source(s):** <URL 1>, <URL 2>
+- **Updated DB:** yes | no
+```
+
+Group preschools first, then upper schools. At the top, include a summary table: total researched, tuition found, notes enriched, schools where nothing was findable.
+
+## Done Criteria
+
+- Every row in `preschools` and `upperschools` has been visited at least once.
+- `research/pricing-results.md` has one entry per school with source URLs.
+- DB reflects all confirmed findings.
+- Snapshot `SPEC.md` to `research/pricing-results.spec.md` at the end.
+- Output `<promise>DONE</promise>` to end the loop.

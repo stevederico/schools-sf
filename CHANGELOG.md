@@ -1,3 +1,22 @@
+0.7.0
+
+  Deep research tuition and notes pass 2
+  Archbishop Riordan tuition $28,000
+  Helen Diller preschool tuition $28,865
+  Rosenberg preschool tuition $40,095
+  Seabird current rates found
+  SFUSD EES ELFA policy details
+  Flag Ladybug Childcare closure risk
+  Document Cow Hollow Cypress rebrand
+
+0.6.0
+
+  Add favorites feature
+  Heart button on school cards
+  Favorites toggle on detail sheet
+  Favorites only filter button
+  Persist favorites in localStorage
+
 0.5.0
 
   Merge list and map into one view
