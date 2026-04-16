@@ -38,9 +38,9 @@ export default function SchoolCard({ school, onClick }) {
             <Badge variant="secondary" className="text-copy-sm">{school.neighborhood}</Badge>
           )}
           {school.program_type && (
-            <Badge variant="outline" className="text-copy-sm">{school.program_type}</Badge>
+            <Badge variant="secondary" className="text-copy-sm">{school.program_type}</Badge>
           )}
-          <Badge variant="outline" className="text-copy-sm">
+          <Badge variant="secondary" className="text-copy-sm">
             {isPublic ? 'Public' : 'Private'}
           </Badge>
         </div>
