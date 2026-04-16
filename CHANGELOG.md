@@ -1,3 +1,11 @@
+0.10.0
+
+  Add price sort low to high
+  Add price sort high to low
+  Unknown tuition sorts above high
+  Tuition parser handles ranges and monthly
+  Sort state persists in URL
+
 0.9.1
 
   OCR Stella Maris tuition chart

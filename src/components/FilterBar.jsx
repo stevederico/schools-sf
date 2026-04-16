@@ -3,10 +3,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@stevederico/skateboard-ui/shadcn/ui/tabs';
 import { Search } from 'lucide-react';
 
-export default function FilterBar({ filters, setFilters, neighborhoods, programTypes }) {
+export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange }) {
   function updateFilter(key, value) {
     setFilters(prev => ({ ...prev, [key]: value }));
   }
+
+  const sortLabel = (v) => {
+    if (v === 'price-asc') return 'Price: Low → High';
+    if (v === 'price-desc') return 'Price: High → Low';
+    return 'Sort: Default';
+  };
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -63,6 +69,17 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
           <TabsTrigger value="upperschool">Upper</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <Select value={sort || 'default'} onValueChange={(v) => onSortChange(v === 'default' ? '' : v)}>
+        <SelectTrigger className="w-full md:w-44" aria-label="Sort schools">
+          <SelectValue>{(v) => sortLabel(v === 'default' ? '' : v)}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="default">Sort: Default</SelectItem>
+          <SelectItem value="price-asc">Price: Low → High</SelectItem>
+          <SelectItem value="price-desc">Price: High → Low</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

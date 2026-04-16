@@ -4,6 +4,7 @@ import { Spinner } from '@stevederico/skateboard-ui/shadcn/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/shadcn/ui/toggle-group';
 import { useSchools } from './useSchools.js';
 import { useFavorites, favoriteKey } from './useFavorites.js';
+import { compareTuition } from './tuitionSort.js';
 import FilterBar from './FilterBar.jsx';
 import SchoolCard from './SchoolCard.jsx';
 import SchoolDetailSheet from './SchoolDetailSheet.jsx';
@@ -23,6 +24,8 @@ export default function DirectoryView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'map' ? 'map' : 'list';
   const favoritesOnly = searchParams.get('favorites') === '1';
+  const sortParam = searchParams.get('sort');
+  const sort = sortParam === 'price-asc' || sortParam === 'price-desc' ? sortParam : '';
 
   const highlightId = useMemo(() => {
     const id = searchParams.get('highlight');
@@ -41,8 +44,20 @@ export default function DirectoryView() {
     if (favoritesOnly) {
       list = list.filter((s) => favorites.has(favoriteKey(s)));
     }
+    if (sort === 'price-asc' || sort === 'price-desc') {
+      const direction = sort === 'price-asc' ? 'asc' : 'desc';
+      // Clone before sort so we never mutate the hook's array
+      list = [...list].sort((a, b) => compareTuition(a, b, direction));
+    }
     return list;
-  }, [schools, filters.sector, favoritesOnly, favorites]);
+  }, [schools, filters.sector, favoritesOnly, favorites, sort]);
+
+  function setSort(nextSort) {
+    const next = new URLSearchParams(searchParams);
+    if (nextSort) next.set('sort', nextSort);
+    else next.delete('sort');
+    setSearchParams(next, { replace: true });
+  }
 
   function toggleFavoritesOnly() {
     const next = new URLSearchParams(searchParams);
@@ -71,6 +86,8 @@ export default function DirectoryView() {
             setFilters={setFilters}
             neighborhoods={neighborhoods}
             programTypes={programTypes}
+            sort={sort}
+            onSortChange={setSort}
           />
         </div>
         <Button
