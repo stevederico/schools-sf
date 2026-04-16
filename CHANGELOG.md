@@ -1,3 +1,7 @@
+0.11.1
+
+  Fix Bluebell coordinates
+
 0.11.0
 
   Remove backdrop blur
