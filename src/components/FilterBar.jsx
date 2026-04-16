@@ -23,7 +23,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.neighborhood || 'all'} onValueChange={(v) => updateFilter('neighborhood', v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-48" aria-label="Filter by neighborhood">
-          <SelectValue placeholder="Neighborhood" />
+          <SelectValue>{(v) => (v === 'all' || !v ? 'All Neighborhoods' : v)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Neighborhoods</SelectItem>
@@ -35,7 +35,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.program_type || 'all'} onValueChange={(v) => updateFilter('program_type', v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-44" aria-label="Filter by program type">
-          <SelectValue placeholder="Program Type" />
+          <SelectValue>{(v) => (v === 'all' || !v ? 'All Types' : v)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Types</SelectItem>
@@ -47,10 +47,10 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.sector || 'all'} onValueChange={(v) => updateFilter('sector', v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-32" aria-label="Filter by public or private">
-          <SelectValue placeholder="Sector" />
+          <SelectValue>{(v) => (v === 'all' || !v ? 'All Sectors' : v === 'public' ? 'Public' : 'Private')}</SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All</SelectItem>
+          <SelectItem value="all">All Sectors</SelectItem>
           <SelectItem value="public">Public</SelectItem>
           <SelectItem value="private">Private</SelectItem>
         </SelectContent>
