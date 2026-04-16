@@ -1,5 +1,19 @@
 # Pricing Research Results
 
+## Pass 3 — Narrow-in Cleanup (2026-04-15)
+
+Cleanup following Pass 2 flags.
+
+**Deletions:**
+- **Cow Hollow School (id 6)** — Rebranded to Cypress School SF (id 7) on Dec 20, 2024. Duplicate record removed; id 7 has all current info.
+- **Ladybug Childcare (id 39)** — Permanently closed. Facebook posted "DAYCARE CLOSING SALE!" on April 6, 2024. Domain `ladybugchildcare.com` now parked on hugedomains.com (for sale). Directory listings show all days as "Closed" as of 2025.
+
+**Database state after Pass 3:**
+- Preschools: **50 total** (was 52) — 31 priced, 19 "Not publicly available"
+- Upper schools: 40 total — all priced
+
+---
+
 ## Pass 2 — Broad Deep Dive (2026-04-15)
 
 Second research pass covering schools added since Pass 1 (Marina/North Beach/Russian Hill preschools, SFUSD Early Education Schools, high schools) plus notes backfill for previously-priced schools.

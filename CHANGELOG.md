@@ -1,3 +1,8 @@
+0.7.1
+
+  Remove Cow Hollow duplicate
+  Remove closed Ladybug Childcare
+
 0.7.0
 
   Deep research tuition and notes pass 2
