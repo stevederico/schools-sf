@@ -1,3 +1,8 @@
+0.13.0
+
+  Add 6 SF K-8 schools
+  Remove Hamlin duplicate
+
 0.12.0
 
   Default to map view
