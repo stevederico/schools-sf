@@ -1,3 +1,9 @@
+0.9.1
+
+  OCR Stella Maris tuition chart
+  Add L Academy ELFA participation
+  Stella Maris preschool $9,760-$16,000
+
 0.9.0
 
   Add 15 new preschools
