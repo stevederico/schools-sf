@@ -1,3 +1,9 @@
+0.8.0
+
+  Add Hillwood Academic Day School
+  Add San Francisco Public Montessori
+  Remove St Vincent de Paul duplicate
+
 0.7.2
 
   OCR image tuition charts
