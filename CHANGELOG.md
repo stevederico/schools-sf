@@ -1,3 +1,9 @@
+0.3.0
+
+  Research school tuition pricing
+  Add notes column to databases
+  Add pricing results report
+
 0.2.0
 
   Redesign detail sheet layout
