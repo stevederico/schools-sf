@@ -40,6 +40,9 @@ backend/.env
 *.db
 *.db-shm
 *.db-wal
+# Keep school database tracked
+!preschools.db
+!backend/databases/preschools.db
 
 MIGRATION_GUIDE-0.9.8.md
 SKATEBOARD_UI_EXTENSIONS_PROPOSAL.md
