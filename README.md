@@ -1,293 +1,166 @@
 <div align="center">
-  <a href="#" />
-    <img alt="Skateboard - Ship your React app in minutes" width="40%" src="https://github.com/user-attachments/assets/b7f2b098-503b-4439-8454-7eb45ae82307">
-  </a>
-  </div>
-
-  <p align="center" style="margin-top: 40px; margin-bottom: 5px;">
-    <img src="public/icons/icon.png" width="60" height="60" alt="Skateboard Logo">
+  <p>
+    <img src="public/icons/icon.png" width="60" height="60" alt="SF Schools">
   </p>
-  <h1 align="center" style="border-bottom: none; margin-bottom: 0;">Skateboard</h1>
+  <h1 align="center" style="border-bottom: none; margin-bottom: 0;">SF Schools</h1>
   <h3 align="center" style="margin-top: 0; font-weight: normal;">
-    a react starter with auth, stripe, shadcn, and sqlite
+    a directory of san francisco preschools and K-12 schools with map, filters, and tuition
   </h3>
+</div>
+
+<br />
 
 ## 🎬 Demo
 
-<div align="center">
-  <img width="75%" alt="skateboard dark mode demo" src="public/skateboard-dark.png" />
-</div>
-
-  <br />
- 
-
-</div>
+Open the live site, browse 107 schools on a Leaflet map or in a grid, filter by neighborhood, program type, and sector, sort by tuition, and save favorites to localStorage — no login required.
 
 <br />
 
 ## 🚀 Quick Start
 
 ```bash
-npx create-skateboard-app
+git clone https://github.com/stevederico/preschool
+cd preschool
+npm run install-all
+npm run start
 ```
 
-That's it, your app is now running at `http://localhost:5173` 🎉
+Frontend on `http://localhost:5173`, backend on `http://localhost:8000`.
 
 <br />
 
 ## ✨ What's Included
 
-Everything you need to ship a production-ready app:
+### 🗺️ **Map + Directory**
+- **Interactive map** with Leaflet — markers for every school with GPS coordinates
+- **Grid directory** with cards showing neighborhood, ages, program type, and tuition
+- **Deep-linked state** — view mode, filters, sort, and highlighted school live in the URL
+- **Detail sheet** with full address, hours, pricing, website, and "View on map"
 
-### 🏗️ **Application Shell Architecture (v1.1)**
-- **95% less boilerplate** - Focus on features, not infrastructure
-- **Shell + Content + Config** - Framework provides structure, you provide content
-- **Update once, fix everywhere** - All apps inherit improvements from skateboard-ui
-- **16-line main.jsx** - Just define your routes
-- **Convention over configuration** - Sensible defaults with escape hatches everywhere
+### 🎯 **Filters & Sort**
+- **Neighborhood, program type, and sector** (public/private) filters
+- **School type tabs** — preschool vs. K-12 upper school
+- **Price sort** — low→high, high→low; unknown tuition sorts above the top
+- **Tuition parser** handles ranges, per-month rates, and free-text formats
+- **Favorites toggle** — heart schools, persists in localStorage, filter by favorites-only
 
-### 🔐 **Authentication & User Management**
-- **Sign up / Sign in** with JWT tokens
-- **Protected routes** with automatic redirects
-- **User context** management across your app
-- **Session persistence** with secure cookies
-- **App-specific auth isolation**
-- **Usage tracking** with configurable limits for free users
+### 🏫 **Curated Data**
+- **65 preschools + 42 upper schools** across San Francisco
+- **Tuition researched** from public sources with OCR-extracted rate charts where available
+- **Neighborhood coverage** spans Marina, Presidio, Pacific Heights, and beyond
+- **Age cutoff and cohort placement** reference doc included
 
-### 💳 **Stripe Integration**
-- **Checkout flows** ready to go
-- **Subscription management** portal
-- **Webhook handling** for payment events
-- **Customer portal** integration
-
-### 🎨 **Beautiful UI Components**
-- **50+ Shadcn/ui components** pre-configured
-- **Dark/Light mode** with system detection
-- **Mobile-ready design** with responsive sidebar and TabBar
-- **Landing page** that converts - fully customizable via constants.json
-- **Settings page** with user management
-- **Legal pages** (Terms, Privacy, EULA)
-
-### 🛠️ **Developer Experience**
-- **Hot Module Replacement** with Vite 7.1+
-- **Zero config** - just works out of the box
-- **Multi-database support** - SQLite (default), MongoDB, PostgreSQL
-- **constants.json** - customize everything in one place
-- **Modern JavaScript** - no TypeScript complexity
-- **Built-in hooks** - useListData, useForm for common patterns
-- **API utilities** - apiRequest with automatic auth and error handling
+### 🛠️ **Stack**
+- **React 19 + Vite 7** frontend
+- **Hono + Node.js SQLite** backend serving a read-only schools database
+- **Tailwind v4** with shadcn/ui primitives via skateboard-ui
+- **react-leaflet** for the map, **@tanstack/react-table** for tabular views, **@dnd-kit** for interactions
 
 <br />
 
+## 📖 Configuration
 
+**Frontend** — `src/constants.json` controls the app name, tagline, features grid, and legal copy. `noLogin: true` keeps the site public with no auth flow.
 
-
-
-## 📖 Frontend Configuration
-
-Update `src/constants.json` to customize your app:
+**Backend** — `backend/config.json` points at the SQLite database:
 
 ```json
 {
-  "appName": "Your App Name",
-  "tagline": "Your Tagline", 
-  "cta": "Get Started"
-}
-```
-
-## 📖 Backend Configuration
-
-**Database Configuration** - Update `backend/config.json`:
-
-```json
-{
-  "client": "http://localhost:5173",
+  "staticDir": "../dist",
   "database": {
-    "db": "MyApp",
+    "db": "PreschoolTmp",
     "dbType": "sqlite",
-    "connectionString": "./databases/MyApp.db"
+    "connectionString": "./databases/PreschoolTmp.db"
   }
 }
 ```
 
-Update to `backend/.env`:
+The main schools dataset lives at `backend/databases/preschools.db` and is opened read-only by the server.
 
-```bash
-# Sqlite remove below
-MONGODB_URL=mongodb+srv://user:pass@example-cluster.example.net/
-POSTGRES_URL=postgresql://user:pass@example-hostname:5432/myapp
-```
-
-**Auth Variables** - Update to `backend/.env`:
-enter a unique random string below
+**Environment** — `backend/.env`:
 
 ```bash
 JWT_SECRET=your-secret-key
-FREE_USAGE_LIMIT=20  # Optional: Monthly usage limit for free users (default: 20)
 ```
 
-**Supported Database Types:**
-- **SQLite** (default): `"dbType": "sqlite"`
-- **PostgreSQL**: `"dbType": "postgresql"` with `"connectionString": "${POSTGRES_URL}"`
-- **MongoDB**: `"dbType": "mongodb"` with `"connectionString": "${MONGODB_URL}"` with `"db": "SkateboardApp"`
+Stripe variables are optional — the site runs without payments.
 
 <br />
 
-## 💳 Stripe Setup
-
-To enable payments, configure your Stripe products:
-
-1. **Create Product in Stripe Dashboard**
-   - Go to **Product Catalog** → **Create Product**
-   - Add **Name** and **Amount**
-   - Click **More Pricing Options**
-   - Scroll to **Lookup Key** at bottom
-   - Enter: `my_lookup_key`
-   - *This allows future pricing changes on stripe.com without updating your code*
-
-2. **Update Environment Variables**
-   ```bash
-   STRIPE_KEY=sk_live_your_secret_key
-   ```
-   
-   **Security Note:** Use your secret key OR create a restricted key with these permissions:
-   - **Read/Write:** Checkout Sessions
-   - **Read:** Customers, Prices, Products
-
-3. **Setup Webhook**
-   - Go to **stripe.com** → **Developers** (lower left) → **Webhooks**
-   - Click **Add Endpoint**
-   - Add your endpoint URL: `https://yourdomain.com/payment`
-   - Select these events:
-     - `customer.subscription.created` - Customer signed up for new plan
-     - `customer.subscription.deleted` - Customer's subscription ends  
-     - `customer.subscription.updated` - Subscription changes (plan switch, trial to active, etc.)
-   - Copy the **Signing Secret** to your environment:
-   ```bash
-   STRIPE_ENDPOINT_SECRET=whsec_your_webhook_secret
-   ```
-
-
-## 📈 Scaling Notes
-
-The default configuration uses in-memory stores for rate limiting and CSRF tokens. This works great for single-instance deployments.
-
-**For horizontal scaling** (multiple server instances):
-- Replace in-memory rate limiter with Redis
-- Move CSRF tokens to database or Redis
-- Use sticky sessions or shared session store
-
-See [Architecture Documentation](docs/ARCHITECTURE.md#scaling) for details.
-
 ## 🏗️ Tech Stack
-
-Built with the latest and greatest:
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **React** | v19 | UI Framework |
-| **skateboard-ui** | v2.22+ | Application Shell, Components, Theming |
-| **Vite** | v7.1+ | Build Tool & Dev Server |
+| **React** | v19 | UI framework |
+| **Vite** | v7.1+ | Build tool and dev server |
 | **Tailwind CSS** | v4.1+ | Styling |
 | **React Router** | v7.9+ | Routing |
-| **Zod** | v4 | Validation |
-| **Hono** | v4+ | Backend Server |
-| **Deno** | v2.6.8+ | Runtime |
-| **Multi-Database** | Latest | SQLite, PostgreSQL, MongoDB |
-| **Stripe** | Latest | Payments |
-| **JWT** | Latest | Authentication |
+| **react-leaflet** | v5 | Map rendering |
+| **Hono** | v4+ | Backend server |
+| **Node SQLite** | v22+ | Database (native `node:sqlite`) |
+| **skateboard-ui** | v2.22+ | App shell and shadcn primitives |
 
 <br />
 
 ## 📚 Architecture
 
-Skateboard uses an **Application Shell Architecture** where the framework (skateboard-ui) provides structure and your app provides content.
+Built on the skateboard Application Shell pattern — skateboard-ui owns routing, layout, and auth scaffolding; this repo owns the browse experience (`DirectoryView`, `NeighborhoodMap`, `SchoolDetailSheet`, `FilterBar`) and the schools API endpoints in `backend/server.js`.
 
-**Your app in 3 parts:**
-1. **Shell** (skateboard-ui) - Routing, auth, context, utilities
-2. **Content** (your code) - Components and business logic
-3. **Config** (constants.json) - App-specific settings
+Three API endpoints power the frontend:
 
-**Example main.jsx** (complete app):
-```javascript
-import { createSkateboardApp } from '@stevederico/skateboard-ui/App';
-import constants from './constants.json';
-import HomeView from './components/HomeView.jsx';
-
-const appRoutes = [
-  { path: 'home', element: <HomeView /> }
-];
-
-createSkateboardApp({ constants, appRoutes });
-```
-
-That's it! The shell handles routing, auth, layout, landing page, sign in/up, settings, payment, and all legal pages.
-
-**Learn more:**
-- [Architecture Documentation](docs/ARCHITECTURE.md) - Deep dive into the shell pattern
-- [Migration Guide](docs/MIGRATION.md) - Upgrade from any version
+- `GET /api/schools` — filtered school list (type, neighborhood, program_type, query)
+- `GET /api/neighborhoods` — distinct neighborhood list for filters
+- `GET /api/program-types` — distinct program type list for filters
 
 <br />
 
 ## 🚀 Deployment
 
-See the [Deployment Guide](docs/DEPLOY.md) for step-by-step instructions on deploying to your preferred platform.
+See [docs/DEPLOY.md](docs/DEPLOY.md). The Dockerfile builds the frontend and serves it from the Hono backend; mount a persistent volume at `/app/databases` if you need the user/auth database to survive redeploys.
 
 <br />
 
 ## 🤝 Contributing
 
-We love contributions!
-
 ```bash
-# Fork the repo, then:
-git clone https://github.com/YOUR_USERNAME/skateboard
-cd skateboard
-deno install
-deno run start
+git clone https://github.com/stevederico/preschool
+cd preschool
+npm run install-all
+npm run start
 ```
+
+Run tests with `npm run test`.
 
 <br />
 
 ## 📬 Community & Support
 
 - **🐦 X**: [@stevederico](https://x.com/stevederico)
-- **🐛 Issues**: [GitHub Issues](https://github.com/stevederico/skateboard/issues)
+- **🐛 Issues**: [GitHub Issues](https://github.com/stevederico/preschool/issues)
 
 <br />
 
 ## 🙏 Acknowledgements
 
-Built on the shoulders of giants:
-
-- [React](https://react.dev) - The library that powers the web
-- [Vite](https://vitejs.dev) - Lightning fast build tool
-- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
-- [Shadcn/ui](https://ui.shadcn.com) - Beautiful components
-- [Stripe](https://stripe.com) - Payment infrastructure
+- [React](https://react.dev) — UI library
+- [Vite](https://vitejs.dev) — build tool
+- [Tailwind CSS](https://tailwindcss.com) — utility-first CSS
+- [Shadcn/ui](https://ui.shadcn.com) — accessible components
+- [Leaflet](https://leafletjs.com) — open-source maps
+- [OpenStreetMap](https://www.openstreetmap.org/copyright) — map tile data
 
 <br />
 
 ## 🎪 Related Projects
 
-- [skateboard-ui](https://github.com/stevederico/skateboard-ui) - Component library
-- [skateboard-blog](https://github.com/stevederico/skateboard-blog) - Blog template
-- [create-skateboard-app](https://github.com/stevederico/create-skateboard-app) - CLI tool
-
-<br />
-
-
-## 🚀 Ready to Ship?
-
-```bash
-npx create-skateboard-app
-```
+- [skateboard](https://github.com/stevederico/skateboard) — React boilerplate with auth and payments
+- [skateboard-ui](https://github.com/stevederico/skateboard-ui) — component library
 
 <br />
 
 ## 📄 License
 
-MIT License - use it however you want! See [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE).
 
 <br />
 
@@ -295,10 +168,9 @@ MIT License - use it however you want! See [LICENSE](LICENSE) for details.
 
 <div align="center">
   <p>
-    Built with ❤️ by <a href="https://github.com/stevederico">Steve Derico</a> and contributors
+    Made with <a href="https://github.com/stevederico/skateboard">Skateboard</a> — a React boilerplate with auth and payments
   </p>
-  
   <p>
-    <a href="https://github.com/stevederico/skateboard">⭐ Star us on GitHub</a> — it helps!
+    Built by <a href="https://github.com/stevederico">Steve Derico</a>
   </p>
 </div>

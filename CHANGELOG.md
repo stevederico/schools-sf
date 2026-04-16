@@ -1,3 +1,9 @@
+0.11.0
+
+  Remove backdrop blur
+  Rewrite README
+  Update CLAUDE.md
+
 0.10.1
 
   Fix Dockerfile workspace deps

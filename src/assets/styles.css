@@ -29,6 +29,11 @@
   z-index: 0;
 }
 
+/* Remove backdrop blur on sheet overlay */
+[data-slot="sheet-overlay"] {
+  backdrop-filter: none !important;
+}
+
 /* Status tokens */
 @theme {
   --color-success: oklch(0.72 0.19 142);
