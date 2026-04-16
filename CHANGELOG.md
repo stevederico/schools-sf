@@ -1,3 +1,7 @@
+0.11.2
+
+  Fix 14 school coordinates
+
 0.11.1
 
   Fix Bluebell coordinates
