@@ -1,3 +1,9 @@
+0.7.2
+
+  OCR image tuition charts
+  Little School rates extracted
+  Little Bee rates extracted
+
 0.7.1
 
   Remove Cow Hollow duplicate

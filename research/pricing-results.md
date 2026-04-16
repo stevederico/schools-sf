@@ -1,5 +1,24 @@
 # Pricing Research Results
 
+## Pass 4 — Image OCR via agent-browser (2026-04-15)
+
+For schools that published rates as images (not HTML text), used agent-browser to render the page and read the tuition tables directly.
+
+| ID | School | Tuition (OCR'd) | Source |
+|---|---|---|---|
+| 22 | The Little School | **$14,090-$41,138/year (2026-2027)** | https://www.littleschool.org/tuition |
+| 13 | Little Bee Preschool | **$1,435-$3,105/month** (2-5 days/week, preschool or toddler) | https://littlebeeschool.com/admissions |
+
+**Also checked (no image pricing found):**
+- id 14 Little Gators — confirmed "call for tuition" policy, no chart on site
+- id 8 Hungry Caterpillars — SSL cert error (site misconfigured)
+
+**Database state after Pass 4:**
+- Preschools: 50 total — **33 priced** (up from 31), 17 "Not publicly available"
+- Upper schools: 40 total — all priced
+
+---
+
 ## Pass 3 — Narrow-in Cleanup (2026-04-15)
 
 Cleanup following Pass 2 flags.
