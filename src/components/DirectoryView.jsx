@@ -39,7 +39,10 @@ export default function DirectoryView() {
     return schools;
   }, [schools, filters.sector]);
 
-  function setView(v) {
+  function setView(values) {
+    // base-ui ToggleGroup passes an array; keep the last-selected value and
+    // ignore empty arrays (clicking the active button) to prevent deselecting both
+    const v = Array.isArray(values) ? values[values.length - 1] : values;
     if (!v) return;
     const next = new URLSearchParams(searchParams);
     if (v === 'map') next.set('view', 'map');
@@ -69,7 +72,7 @@ export default function DirectoryView() {
             programTypes={programTypes}
           />
         </div>
-        <ToggleGroup type="single" value={view} onValueChange={setView} variant="outline" aria-label="View mode">
+        <ToggleGroup value={[view]} onValueChange={setView} variant="outline" aria-label="View mode">
           <ToggleGroupItem value="list" aria-label="List view">
             <List className="size-4" aria-hidden="true" />
           </ToggleGroupItem>
