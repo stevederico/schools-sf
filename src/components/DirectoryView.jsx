@@ -26,14 +26,11 @@ export default function DirectoryView() {
     return id && type ? `${type}-${id}` : null;
   }, [searchParams]);
 
-  // Public/private client-side filter — public schools are marked via program_type
-  // starting with "Public" (e.g., "Public Pre-K/TK", "Public Elementary") or
-  // tuition "Public (free)". Excludes "Not publicly available" etc.
+  // Public/private client-side filter — sector is derived from tuition only
+  // (tuition "Public (free)"). Program type describes grade levels, not sector.
   const filteredSchools = useMemo(() => {
     if (!filters.sector) return schools;
-    const isPublic = (s) =>
-      (s.program_type || '').trim().startsWith('Public') ||
-      (s.tuition || '').trim().startsWith('Public');
+    const isPublic = (s) => (s.tuition || '').trim().startsWith('Public');
     if (filters.sector === 'public') return schools.filter(isPublic);
     if (filters.sector === 'private') return schools.filter((s) => !isPublic(s));
     return schools;

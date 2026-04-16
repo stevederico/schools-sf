@@ -3,14 +3,11 @@ import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
 import { Clock, DollarSign, Users } from 'lucide-react';
 
 /**
- * Determine if a school is public based on program_type or tuition starting
- * with "Public". Mirrors the filter logic in DirectoryView.
+ * Determine if a school is public based on tuition starting with "Public".
+ * Program type describes the grade levels offered, not the sector.
  */
 function isPublicSchool(school) {
-  return (
-    (school.program_type || '').trim().startsWith('Public') ||
-    (school.tuition || '').trim().startsWith('Public')
-  );
+  return (school.tuition || '').trim().startsWith('Public');
 }
 
 export default function SchoolCard({ school, onClick }) {
