@@ -50,19 +50,8 @@ export default function DirectoryView() {
     setSearchParams(next, { replace: true });
   }
 
-  const countLabel = isLoading
-    ? 'Loading...'
-    : `${filteredSchools.length} school${filteredSchools.length === 1 ? '' : 's'} found`;
-
   return (
     <main className={view === 'map' ? 'flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4' : 'flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full'}>
-      {view === 'list' && (
-        <header>
-          <h1 className="text-heading-lg">School Directory</h1>
-          <p className="text-copy-md text-muted-foreground mt-1">{countLabel}</p>
-        </header>
-      )}
-
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="flex-1 min-w-0">
           <FilterBar
