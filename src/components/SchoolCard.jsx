@@ -1,9 +1,21 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@stevederico/skateboard-ui/shadcn/ui/card';
 import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
-import { MapPin, Clock, DollarSign, Users } from 'lucide-react';
+import { Clock, DollarSign, Users } from 'lucide-react';
+
+/**
+ * Determine if a school is public based on program_type or tuition starting
+ * with "Public". Mirrors the filter logic in DirectoryView.
+ */
+function isPublicSchool(school) {
+  return (
+    (school.program_type || '').trim().startsWith('Public') ||
+    (school.tuition || '').trim().startsWith('Public')
+  );
+}
 
 export default function SchoolCard({ school, onClick }) {
   const isPreschool = school.school_type === 'preschool';
+  const isPublic = isPublicSchool(school);
 
   return (
     <Card
@@ -22,14 +34,18 @@ export default function SchoolCard({ school, onClick }) {
           </Badge>
         </div>
         <div className="flex flex-wrap gap-1.5 pt-1">
-          <Badge variant="outline" className="text-copy-sm">{school.program_type}</Badge>
+          {school.neighborhood && (
+            <Badge variant="secondary" className="text-copy-sm">{school.neighborhood}</Badge>
+          )}
+          {school.program_type && (
+            <Badge variant="outline" className="text-copy-sm">{school.program_type}</Badge>
+          )}
+          <Badge variant="outline" className="text-copy-sm">
+            {isPublic ? 'Public' : 'Private'}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-1.5 text-copy-sm text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{school.neighborhood}</span>
-        </div>
         <div className="flex items-center gap-1.5">
           <Users className="size-3.5 shrink-0" aria-hidden="true" />
           <span>Ages {school.ages}</span>
