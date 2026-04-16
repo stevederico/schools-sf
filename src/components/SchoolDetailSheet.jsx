@@ -34,6 +34,7 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
         <Separator className="my-4" />
 
         <div className="flex flex-col gap-4">
+          {school.address && <DetailRow icon={MapPin} label="Address" value={school.address} />}
           <DetailRow icon={MapPin} label="Neighborhood" value={school.neighborhood} />
           <DetailRow icon={Users} label="Ages" value={school.ages} />
           <DetailRow

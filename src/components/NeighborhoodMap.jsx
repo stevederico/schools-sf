@@ -1,19 +1,10 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { NEIGHBORHOOD_COORDS, SF_CENTER, DEFAULT_ZOOM } from './neighborhoods.js';
+import { SF_CENTER, DEFAULT_ZOOM } from './neighborhoods.js';
 
 // Fix Leaflet default marker icons for Vite bundling
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
 
 function createSvgIcon(color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
@@ -33,23 +24,9 @@ function createSvgIcon(color) {
 const preschoolIcon = createSvgIcon('#3b82f6');
 const upperschoolIcon = createSvgIcon('#8b5cf6');
 
-const SF_BOUNDS = { minLat: 37.5, maxLat: 38.0, minLng: -122.6, maxLng: -122.1 };
-
-function isInSFArea(coords) {
-  return coords.lat >= SF_BOUNDS.minLat && coords.lat <= SF_BOUNDS.maxLat
-    && coords.lng >= SF_BOUNDS.minLng && coords.lng <= SF_BOUNDS.maxLng;
-}
-
-function getMarkerPosition(school, index, schoolsAtSameNeighborhood) {
-  const coords = NEIGHBORHOOD_COORDS[school.neighborhood] || SF_CENTER;
-  if (schoolsAtSameNeighborhood <= 1) return [coords.lat, coords.lng];
-
-  const angle = (index * 2 * Math.PI) / schoolsAtSameNeighborhood;
-  const radius = 0.001 + (index % 3) * 0.0005;
-  return [
-    coords.lat + radius * Math.cos(angle),
-    coords.lng + radius * Math.sin(angle),
-  ];
+function getPosition(school) {
+  if (school.lat && school.lng) return [school.lat, school.lng];
+  return [SF_CENTER.lat, SF_CENTER.lng];
 }
 
 function FitBounds({ schools }) {
@@ -58,15 +35,13 @@ function FitBounds({ schools }) {
   useEffect(() => {
     if (schools.length === 0) return;
 
-    const sfPositions = schools
-      .map((s) => NEIGHBORHOOD_COORDS[s.neighborhood])
-      .filter(Boolean)
-      .filter(isInSFArea)
-      .map((c) => [c.lat, c.lng]);
+    const positions = schools
+      .filter((s) => s.lat && s.lng)
+      .map((s) => [s.lat, s.lng]);
 
-    if (sfPositions.length > 0) {
-      const bounds = L.latLngBounds(sfPositions);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    if (positions.length > 0) {
+      const bounds = L.latLngBounds(positions);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
     }
   }, [schools, map]);
 
@@ -74,15 +49,6 @@ function FitBounds({ schools }) {
 }
 
 export default function NeighborhoodMap({ schools, onSchoolClick, highlightId }) {
-  const neighborhoodCounts = {};
-  const neighborhoodIndexes = {};
-
-  for (const school of schools) {
-    const key = school.neighborhood || 'unknown';
-    neighborhoodCounts[key] = (neighborhoodCounts[key] || 0) + 1;
-    neighborhoodIndexes[key] = 0;
-  }
-
   return (
     <MapContainer
       center={[SF_CENTER.lat, SF_CENTER.lng]}
@@ -96,11 +62,8 @@ export default function NeighborhoodMap({ schools, onSchoolClick, highlightId })
       />
       <FitBounds schools={schools} />
 
-      {schools.map((school) => {
-        const key = school.neighborhood || 'unknown';
-        const idx = neighborhoodIndexes[key]++;
-        const total = neighborhoodCounts[key];
-        const position = getMarkerPosition(school, idx, total);
+      {schools.filter((s) => s.lat && s.lng).map((school) => {
+        const position = getPosition(school);
         const isPreschool = school.school_type === 'preschool';
         const isHighlighted = highlightId === `${school.school_type}-${school.id}`;
 
@@ -119,7 +82,7 @@ export default function NeighborhoodMap({ schools, onSchoolClick, highlightId })
                 <p className="font-semibold text-sm">{school.name}</p>
                 <p className="text-xs text-gray-500">{school.program_type}</p>
                 <p className="text-xs">Ages {school.ages}</p>
-                <p className="text-xs text-gray-500">{school.neighborhood}</p>
+                {school.address && <p className="text-xs text-gray-500">{school.address}</p>}
               </div>
             </Popup>
           </Marker>

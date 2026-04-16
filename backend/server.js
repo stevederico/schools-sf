@@ -1390,9 +1390,7 @@ app.get('/api/schools', (c) => {
 
     const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-    const cols = isPreschool
-      ? 'id, name, neighborhood, ages, hours, tuition, program_type, url'
-      : 'id, name, neighborhood, ages, hours, tuition, program_type, url';
+    const cols = 'id, name, neighborhood, ages, hours, tuition, program_type, url, address, lat, lng';
 
     queries.push(`SELECT ${cols}, '${table}' as school_type FROM ${tableName}${where}`);
     allParams.push(...params);
