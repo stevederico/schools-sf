@@ -24,7 +24,7 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
           <SheetTitle className="text-heading-md text-balance">{school.name}</SheetTitle>
           <SheetDescription className="sr-only">Details for {school.name}</SheetDescription>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Badge variant={isPreschool ? 'default' : 'secondary'}>
+            <Badge variant="secondary">
               {isPreschool ? 'Preschool' : 'Upper School'}
             </Badge>
             <Badge variant="outline">{school.program_type}</Badge>

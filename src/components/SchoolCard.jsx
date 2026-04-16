@@ -17,7 +17,7 @@ export default function SchoolCard({ school, onClick }) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-label-lg leading-snug">{school.name}</CardTitle>
-          <Badge variant={isPreschool ? 'default' : 'secondary'} className="shrink-0 text-copy-sm">
+          <Badge variant="secondary" className="shrink-0 text-copy-sm">
             {isPreschool ? 'Preschool' : 'Upper'}
           </Badge>
         </div>
