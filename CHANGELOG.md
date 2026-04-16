@@ -1,3 +1,17 @@
+0.9.0
+
+  Add 15 new preschools
+  Add Stella Maris Academy
+  Add 5 L Academy locations
+  Add 3 HolaKids Spanish locations
+  Add Les Petits Canards
+  Add Little Bee Presidio
+  Add Lycee Francais La Petite Ecole
+  Add SF Waldorf Nursery
+  Add Amigos de Presidio Heights
+  Add Alta Plaza Preschool
+  Add Circle of Friends
+
 0.8.0
 
   Add Hillwood Academic Day School
