@@ -45,11 +45,9 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
 
         <div className="flex gap-2 mt-6">
           {school.url && school.url !== 'N/A' && (
-            <Button asChild className="flex-1">
-              <a href={school.url} target="_blank" rel="noopener noreferrer">
-                Website
-                <ExternalLink className="size-3.5 ml-1.5" aria-hidden="true" />
-              </a>
+            <Button className="flex-1" onClick={() => window.open(school.url, '_blank', 'noopener,noreferrer')}>
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              Website
             </Button>
           )}
           <Button variant="outline" className="flex-1" onClick={handleViewOnMap}>

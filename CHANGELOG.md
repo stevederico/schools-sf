@@ -1,3 +1,8 @@
+0.4.0
+
+  Add 14 north-side preschools
+  Fix Website button icon wrapping
+
 0.3.0
 
   Research school tuition pricing
