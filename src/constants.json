@@ -1,0 +1,74 @@
+{
+    "version": "0.1.0",
+    "design": {
+        "baseColor": "blue",
+        "radius": "medium",
+        "font": "geist",
+        "iconLibrary": "lucide"
+    },
+    "appName": "SF Schools",
+    "appIcon": "graduation-cap",
+    "tagline": "Find the right school in San Francisco",
+    "cta": "Browse Schools",
+    "ctaHeading": "Find the Right School",
+    "noLogin": true,
+    "authOverlay": false,
+    "sidebarCollapsed": false,
+    "features": {
+        "title": "Everything You Need to Choose",
+        "items": [
+            {
+                "icon": "map-pin",
+                "title": "Map View",
+                "description": "See every school on an interactive map of San Francisco"
+            },
+            {
+                "icon": "filter",
+                "title": "Smart Filters",
+                "description": "Filter by neighborhood, age range, and program type"
+            },
+            {
+                "icon": "school",
+                "title": "65+ Schools",
+                "description": "Preschools, K-8, and high schools across SF neighborhoods"
+            }
+        ]
+    },
+    "backendURL": "/api",
+    "devBackendURL": "http://localhost:8000/api",
+    "pages": [
+        {
+            "title": "Directory",
+            "url": "home",
+            "icon": "school"
+        },
+        {
+            "title": "Map",
+            "url": "map",
+            "icon": "map-pin"
+        }
+    ],
+    "navLinks": [
+        {
+            "label": "Features",
+            "href": "#features"
+        }
+    ],
+    "footerLinks": [
+        {
+            "label": "Privacy",
+            "href": "/privacy"
+        },
+        {
+            "label": "Terms",
+            "href": "/terms"
+        }
+    ],
+    "copyrightText": "All rights reserved.",
+    "companyName": "SF Schools",
+    "companyWebsite": "sfschools.com",
+    "companyEmail": "hello@sfschools.com",
+    "termsOfService": "Welcome to SF Schools. By using this application, you agree to these Terms of Use.\n\n1. This is a directory of schools in San Francisco provided for informational purposes only.\n\n2. We make no warranties about the accuracy or completeness of school information.\n\n3. Always verify information directly with schools before making decisions.\n\n4. Contact us at hello@sfschools.com with questions.",
+    "privacyPolicy": "SF Schools respects your privacy.\n\nWe collect minimal analytics data to improve the directory experience. We do not collect personal information, require accounts, or share data with third parties.\n\nContact us at hello@sfschools.com with questions.",
+    "EULA": "This application is provided as-is for informational purposes. School information may change without notice. Always verify directly with schools."
+}
