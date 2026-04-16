@@ -1,3 +1,8 @@
+0.10.1
+
+  Fix Dockerfile workspace deps
+  Deploy schools service to Railway
+
 0.10.0
 
   Add price sort low to high

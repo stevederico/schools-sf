@@ -7,8 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install dependencies
-RUN npm install && cd backend && npm install
+# Install dependencies (workspace-aware: hoists backend deps to /app/node_modules)
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -27,12 +27,13 @@ ENV NODE_ENV=production
 # Copy built frontend
 COPY --from=builder /app/dist ./dist
 
-# Copy backend
+# Copy backend source and hoisted workspace dependencies
 COPY --from=builder /app/backend ./backend
-COPY --from=builder /app/backend/node_modules ./backend/node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy package files
 COPY package*.json ./
+COPY backend/package*.json ./backend/
 
 # Expose port
 EXPOSE 8000
