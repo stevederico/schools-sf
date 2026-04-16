@@ -22,7 +22,7 @@ export default function DirectoryView() {
   const { favorites } = useFavorites();
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get('view') === 'map' ? 'map' : 'list';
+  const view = searchParams.get('view') === 'list' ? 'list' : 'map';
   const favoritesOnly = searchParams.get('favorites') === '1';
   const sortParam = searchParams.get('sort');
   const sort = sortParam === 'price-asc' || sortParam === 'price-desc' ? sortParam : '';
@@ -72,7 +72,7 @@ export default function DirectoryView() {
     const v = Array.isArray(values) ? values[values.length - 1] : values;
     if (!v) return;
     const next = new URLSearchParams(searchParams);
-    if (v === 'map') next.set('view', 'map');
+    if (v === 'list') next.set('view', 'list');
     else next.delete('view');
     setSearchParams(next, { replace: true });
   }

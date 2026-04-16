@@ -33,7 +33,7 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 
 ### URL State
 `DirectoryView` reads and writes these query params:
-- `view=list|map` — view toggle
+- `view=list` — switch to list view (map is the default, no param needed)
 - `favorites=1` — favorites-only filter
 - `sort=price-asc|price-desc` — tuition sort
 - `highlight=<id>&type=<preschool|upperschool>` — marker highlight from detail sheet's "View on map"
