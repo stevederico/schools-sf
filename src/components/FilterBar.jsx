@@ -45,6 +45,17 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
         </SelectContent>
       </Select>
 
+      <Select value={filters.sector || 'all'} onValueChange={(v) => updateFilter('sector', v === 'all' ? '' : v)}>
+        <SelectTrigger className="w-full md:w-32" aria-label="Filter by public or private">
+          <SelectValue placeholder="Sector" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All</SelectItem>
+          <SelectItem value="public">Public</SelectItem>
+          <SelectItem value="private">Private</SelectItem>
+        </SelectContent>
+      </Select>
+
       <Tabs value={filters.type || 'all'} onValueChange={(v) => updateFilter('type', v === 'all' ? '' : v)}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>

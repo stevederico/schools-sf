@@ -1,3 +1,10 @@
+0.5.0
+
+  Merge list and map into one view
+  Add public/private sector filter
+  Add 14 SFUSD early education schools
+  Add 3 more Marina preschools
+
 0.4.0
 
   Add 14 north-side preschools

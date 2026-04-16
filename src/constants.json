@@ -38,14 +38,9 @@
     "devBackendURL": "http://localhost:8000/api",
     "pages": [
         {
-            "title": "Directory",
+            "title": "Browse",
             "url": "home",
             "icon": "school"
-        },
-        {
-            "title": "Map",
-            "url": "map",
-            "icon": "map-pin"
         }
     ],
     "navLinks": [

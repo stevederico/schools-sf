@@ -15,7 +15,7 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
 
   function handleViewOnMap() {
     onClose();
-    navigate(`/app/map?highlight=${school.id}&type=${school.school_type}`);
+    navigate(`/app/home?view=map&highlight=${school.id}&type=${school.school_type}`);
   }
 
   return (

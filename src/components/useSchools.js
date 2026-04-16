@@ -14,6 +14,7 @@ export function useSchools() {
     type: '',
     neighborhood: '',
     program_type: '',
+    sector: '',
   });
   const debounceRef = useRef(null);
 
