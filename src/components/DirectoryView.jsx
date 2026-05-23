@@ -1,5 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { Spinner } from '@stevederico/skateboard-ui/shadcn/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/shadcn/ui/toggle-group';
 import { useSchools } from './useSchools.js';
@@ -8,7 +8,7 @@ import { compareTuition } from './tuitionSort.js';
 import FilterBar from './FilterBar.jsx';
 import SchoolCard from './SchoolCard.jsx';
 import SchoolDetailSheet from './SchoolDetailSheet.jsx';
-import { School, List, Map as MapIcon, Heart } from 'lucide-react';
+import { School, List, Map as MapIcon, Heart } from '@stevederico/skateboard-ui/icons';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 
 const NeighborhoodMap = lazy(() => import('./NeighborhoodMap.jsx'));

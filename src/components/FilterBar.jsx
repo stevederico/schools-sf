@@ -1,7 +1,7 @@
 import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@stevederico/skateboard-ui/shadcn/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@stevederico/skateboard-ui/shadcn/ui/tabs';
-import { Search } from 'lucide-react';
+import { Search } from '@stevederico/skateboard-ui/icons';
 
 export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange }) {
   function updateFilter(key, value) {

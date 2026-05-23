@@ -1,3 +1,10 @@
+0.14.0
+
+  Bump skateboard 3.4.0
+  Drop demo scaffolding
+  Migrate to react-router
+  Migrate to vendored icons
+
 0.13.1
 
   Fix Serra coordinates
