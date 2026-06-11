@@ -2,16 +2,17 @@ import { useState, useMemo, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router';
 import { Spinner } from '@stevederico/skateboard-ui/shadcn/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/shadcn/ui/toggle-group';
-import { useSchools } from './useSchools.js';
-import { useFavorites, favoriteKey } from './useFavorites.js';
-import { compareTuition } from './tuitionSort.js';
-import FilterBar from './FilterBar.jsx';
-import SchoolCard from './SchoolCard.jsx';
-import SchoolDetailSheet from './SchoolDetailSheet.jsx';
+import { useSchools } from './useSchools';
+import { useFavorites, favoriteKey } from './useFavorites';
+import { compareTuition } from './tuitionSort';
+import FilterBar from './FilterBar';
+import SchoolCard from './SchoolCard';
+import SchoolDetailSheet from './SchoolDetailSheet';
 import { School, List, Map as MapIcon, Heart } from '@stevederico/skateboard-ui/icons';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
+import type { School as SchoolRecord, SortOption } from './types';
 
-const NeighborhoodMap = lazy(() => import('./NeighborhoodMap.jsx'));
+const NeighborhoodMap = lazy(() => import('./NeighborhoodMap'));
 
 /**
  * Unified browse view for schools — toggles between list (grid of cards) and map.
@@ -20,12 +21,12 @@ const NeighborhoodMap = lazy(() => import('./NeighborhoodMap.jsx'));
 export default function DirectoryView() {
   const { schools, neighborhoods, programTypes, isLoading, error, filters, setFilters } = useSchools();
   const { favorites } = useFavorites();
-  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'list' ? 'list' : 'map';
   const favoritesOnly = searchParams.get('favorites') === '1';
   const sortParam = searchParams.get('sort');
-  const sort = sortParam === 'price-asc' || sortParam === 'price-desc' ? sortParam : '';
+  const sort: SortOption = sortParam === 'price-asc' || sortParam === 'price-desc' ? sortParam : '';
 
   const highlightId = useMemo(() => {
     const id = searchParams.get('highlight');
@@ -37,7 +38,7 @@ export default function DirectoryView() {
   const filteredSchools = useMemo(() => {
     let list = schools;
     if (filters.sector) {
-      const isPublic = (s) => (s.tuition || '').trim().startsWith('Public');
+      const isPublic = (s: SchoolRecord) => (s.tuition || '').trim().startsWith('Public');
       if (filters.sector === 'public') list = list.filter(isPublic);
       else if (filters.sector === 'private') list = list.filter((s) => !isPublic(s));
     }
@@ -52,7 +53,7 @@ export default function DirectoryView() {
     return list;
   }, [schools, filters.sector, favoritesOnly, favorites, sort]);
 
-  function setSort(nextSort) {
+  function setSort(nextSort: SortOption) {
     const next = new URLSearchParams(searchParams);
     if (nextSort) next.set('sort', nextSort);
     else next.delete('sort');
@@ -66,7 +67,7 @@ export default function DirectoryView() {
     setSearchParams(next, { replace: true });
   }
 
-  function setView(values) {
+  function setView(values: string[]) {
     // base-ui ToggleGroup passes an array; keep the last-selected value and
     // ignore empty arrays (clicking the active button) to prevent deselecting both
     const v = Array.isArray(values) ? values[values.length - 1] : values;

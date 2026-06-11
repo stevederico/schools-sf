@@ -1,3 +1,19 @@
+/** Normalized annual tuition range. `null` min/max paired with isUnknown=true. */
+export interface ParsedTuition {
+  /** Lowest annual dollar amount, or null when unknown */
+  min: number | null;
+  /** Highest annual dollar amount, or null when unknown */
+  max: number | null;
+  /** True when tuition could not be parsed to a number */
+  isUnknown: boolean;
+}
+
+/** Minimal shape compareTuition needs from a school for price sorting. */
+interface TuitionSortable {
+  name: string;
+  tuition?: string | null;
+}
+
 /**
  * Parse a tuition string into a numeric range (annual) for sorting.
  *
@@ -10,7 +26,7 @@
  *   - isUnknown: true for "Not publicly available" / "Contact for quote" / sliding-scale-only
  *   - min/max: annual dollars (e.g. "$2,200/month" → 26400 for both min and max)
  */
-export function parseTuition(tuition) {
+export function parseTuition(tuition: string | null | undefined): ParsedTuition {
   if (!tuition) return { min: null, max: null, isUnknown: true };
 
   const s = tuition.trim();
@@ -60,12 +76,14 @@ export function parseTuition(tuition) {
  * (most expensive ceiling), so wide-range schools rank appropriately in both
  * directions. Ties break alphabetically by name for stable ordering.
  */
-export function compareTuition(a, b, direction) {
+export function compareTuition(a: TuitionSortable, b: TuitionSortable, direction: 'asc' | 'desc'): number {
   const pa = parseTuition(a.tuition);
   const pb = parseTuition(b.tuition);
 
-  const vA = pa.isUnknown ? Infinity : direction === 'asc' ? pa.min : pa.max;
-  const vB = pb.isUnknown ? Infinity : direction === 'asc' ? pb.min : pb.max;
+  // Known tuition always has numeric min/max; `?? Infinity` mirrors the unknown
+  // branch and satisfies the type narrowing for the null-typed fields.
+  const vA = pa.isUnknown ? Infinity : (direction === 'asc' ? pa.min : pa.max) ?? Infinity;
+  const vB = pb.isUnknown ? Infinity : (direction === 'asc' ? pb.min : pb.max) ?? Infinity;
 
   if (vA === vB) return a.name.localeCompare(b.name);
   return direction === 'desc' ? vB - vA : vA - vB;

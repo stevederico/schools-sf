@@ -3,9 +3,26 @@ import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 import { ExternalLink, MapPin, Clock, DollarSign, Users, Heart } from '@stevederico/skateboard-ui/icons';
 import { useNavigate } from 'react-router';
-import { useFavorites } from './useFavorites.js';
+import { useFavorites } from './useFavorites';
+import type { School } from './types';
 
-export default function SchoolDetailSheet({ school, isOpen, onClose }) {
+/** Props for the school detail side sheet. */
+interface SchoolDetailSheetProps {
+  /** School to display, or null when nothing is selected */
+  school: School | null;
+  /** Whether the sheet is open */
+  isOpen: boolean;
+  /** Called to close the sheet */
+  onClose: () => void;
+}
+
+/**
+ * Slide-over sheet showing a single school's full details with website,
+ * map, and favorite actions. Renders nothing when no school is selected.
+ *
+ * @component
+ */
+export default function SchoolDetailSheet({ school, isOpen, onClose }: SchoolDetailSheetProps) {
   const navigate = useNavigate();
   const { toggle, isFavorite } = useFavorites();
 
@@ -18,7 +35,7 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
 
   function handleViewOnMap() {
     onClose();
-    navigate(`/app/home?highlight=${school.id}&type=${school.school_type}`);
+    navigate(`/app/home?highlight=${school!.id}&type=${school!.school_type}`);
   }
 
   return (
@@ -72,7 +89,16 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }) {
   );
 }
 
-function InfoCell({ label, value }) {
+/** Props for a single labeled detail cell. */
+interface InfoCellProps {
+  /** Field label */
+  label: string;
+  /** Field value; the cell renders nothing when falsy */
+  value?: string | null;
+}
+
+/** A labeled value cell; renders nothing when the value is empty. */
+function InfoCell({ label, value }: InfoCellProps) {
   if (!value) return null;
   return (
     <div>

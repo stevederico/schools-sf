@@ -23,7 +23,7 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 ## Architecture
 
 ### Frontend
-- **Entry:** `src/main.jsx` — 27 lines, uses `createSkateboardApp` with a single `home` route.
+- **Entry:** `src/main.tsx` — 27 lines, uses `createSkateboardApp` with a single `home` route.
 - **Main view:** `src/components/DirectoryView.jsx` — unified list+map view, state deep-linked via URL params.
 - **Map:** `src/components/NeighborhoodMap.jsx` — react-leaflet, SVG pin icons, `FitBounds` helper auto-zooms to result set.
 - **Detail sheet:** `src/components/SchoolDetailSheet.jsx` — shadcn Sheet, includes "View on map" deep link.
@@ -39,7 +39,7 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 - `highlight=<id>&type=<preschool|upperschool>` — marker highlight from detail sheet's "View on map"
 
 ### Backend
-- **Server:** `backend/server.js` — Hono + `@hono/node-server`, serves the built frontend from `../dist`.
+- **Server:** `backend/server.ts` — Hono + `@hono/node-server`, serves the built frontend from `../dist`.
 - **Schools DB:** `backend/databases/preschools.db` — opened read-only at startup via native `node:sqlite`. Two tables: `preschools` (65 rows) and `upperschools` (42 rows).
 - **Auth DB:** `backend/databases/PreschoolTmp.db` — used only if auth flows are exercised. Created on demand via the skateboard adapter manager.
 
@@ -89,3 +89,24 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 ## Updating From Skateboard Boilerplate
 
 `package.json` has `"skateboardVersion": "2.35.0"`. Reference repo: https://github.com/stevederico/skateboard. Diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
+
+## TypeScript Standards
+
+### Style
+
+- TypeScript everywhere — `.ts` / `.tsx` files, `strict` mode always on
+- `@types` packages are dev-only dependencies (`@types/node`, `@types/react`, `@types/react-dom`)
+- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit`; it gates `build` and `test`
+- Always use ES modules — never use `require()`
+
+### TypeScript Anti-Patterns (prohibited)
+
+All of these silence the compiler instead of proving correctness:
+
+- Never use `any` — use `unknown` and narrow with type guards
+- Never use `as` casts to silence errors (especially `as unknown as X`) — prove the type instead
+- Never use `!` non-null assertions — handle the null/undefined case
+- Never use `@ts-ignore` — if truly unavoidable, use `@ts-expect-error` with a reason comment (it fails when the error goes away)
+- Never disable or loosen `strict` in tsconfig
+- Never use loose built-in types (`Function`, `object`, `{}`) — write precise signatures and shapes
+- Never cast unvalidated data at boundaries — no `JSON.parse(x) as User` without a runtime check

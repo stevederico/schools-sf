@@ -1,14 +1,38 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@stevederico/skateboard-ui/shadcn/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@stevederico/skateboard-ui/shadcn/ui/tabs';
 import { Search } from '@stevederico/skateboard-ui/icons';
+import type { SchoolFilters, SortOption } from './types';
 
-export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange }) {
-  function updateFilter(key, value) {
+/** Props for the schools filter toolbar. */
+interface FilterBarProps {
+  /** Current filter state */
+  filters: SchoolFilters;
+  /** Setter for the filter state */
+  setFilters: Dispatch<SetStateAction<SchoolFilters>>;
+  /** Available neighborhood options */
+  neighborhoods: string[];
+  /** Available program-type options */
+  programTypes: string[];
+  /** Current sort selection */
+  sort: SortOption;
+  /** Called when the sort selection changes */
+  onSortChange: (sort: SortOption) => void;
+}
+
+/**
+ * Toolbar of search, neighborhood/program/sector dropdowns, a type tab group,
+ * and a tuition sort selector. Drives the DirectoryView's filtering.
+ *
+ * @component
+ */
+export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange }: FilterBarProps) {
+  function updateFilter(key: keyof SchoolFilters, value: string) {
     setFilters(prev => ({ ...prev, [key]: value }));
   }
 
-  const sortLabel = (v) => {
+  const sortLabel = (v: string | null) => {
     if (v === 'price-asc') return 'Price: Low → High';
     if (v === 'price-desc') return 'Price: High → Low';
     return 'Sort: Default';
@@ -27,7 +51,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
         />
       </div>
 
-      <Select value={filters.neighborhood || 'all'} onValueChange={(v) => updateFilter('neighborhood', v === 'all' ? '' : v)}>
+      <Select value={filters.neighborhood || 'all'} onValueChange={(v) => updateFilter('neighborhood', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-48" aria-label="Filter by neighborhood">
           <SelectValue>{(v) => (v === 'all' || !v ? 'All Neighborhoods' : v)}</SelectValue>
         </SelectTrigger>
@@ -39,7 +63,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
         </SelectContent>
       </Select>
 
-      <Select value={filters.program_type || 'all'} onValueChange={(v) => updateFilter('program_type', v === 'all' ? '' : v)}>
+      <Select value={filters.program_type || 'all'} onValueChange={(v) => updateFilter('program_type', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-44" aria-label="Filter by program type">
           <SelectValue>{(v) => (v === 'all' || !v ? 'All Types' : v)}</SelectValue>
         </SelectTrigger>
@@ -51,7 +75,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
         </SelectContent>
       </Select>
 
-      <Select value={filters.sector || 'all'} onValueChange={(v) => updateFilter('sector', v === 'all' ? '' : v)}>
+      <Select value={filters.sector || 'all'} onValueChange={(v) => updateFilter('sector', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-32" aria-label="Filter by public or private">
           <SelectValue>{(v) => (v === 'all' || !v ? 'All Sectors' : v === 'public' ? 'Public' : 'Private')}</SelectValue>
         </SelectTrigger>
@@ -70,7 +94,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
         </TabsList>
       </Tabs>
 
-      <Select value={sort || 'default'} onValueChange={(v) => onSortChange(v === 'default' ? '' : v)}>
+      <Select value={sort || 'default'} onValueChange={(v) => onSortChange(v === 'price-asc' || v === 'price-desc' ? v : '')}>
         <SelectTrigger className="w-full md:w-44" aria-label="Sort schools">
           <SelectValue>{(v) => sortLabel(v === 'default' ? '' : v)}</SelectValue>
         </SelectTrigger>
