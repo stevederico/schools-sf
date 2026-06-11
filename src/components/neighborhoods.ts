@@ -1,4 +1,11 @@
-export const NEIGHBORHOOD_COORDS = {
+/** Geographic coordinate pair. */
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+/** Approximate map center for each known neighborhood label. */
+export const NEIGHBORHOOD_COORDS: Record<string, LatLng> = {
   "Pacific Heights": { lat: 37.7925, lng: -122.4382 },
   "Cow Hollow": { lat: 37.7986, lng: -122.4379 },
   "Nob Hill": { lat: 37.7920, lng: -122.4156 },
@@ -24,5 +31,7 @@ export const NEIGHBORHOOD_COORDS = {
   "London": { lat: 51.5074, lng: -0.1278 },
 };
 
-export const SF_CENTER = { lat: 37.7849, lng: -122.4294 };
+/** Fallback map center (downtown SF) used when a school has no coordinates. */
+export const SF_CENTER: LatLng = { lat: 37.7849, lng: -122.4294 };
+/** Initial zoom level for the neighborhood map. */
 export const DEFAULT_ZOOM = 13;

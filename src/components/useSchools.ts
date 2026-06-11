@@ -1,24 +1,48 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import constants from '../constants.json';
+import type { School, SchoolFilters } from './types';
 
 const BASE_URL = import.meta.env.DEV ? constants.devBackendURL : constants.backendURL;
 
-export function useSchools() {
-  const [schools, setSchools] = useState([]);
-  const [neighborhoods, setNeighborhoods] = useState([]);
-  const [programTypes, setProgramTypes] = useState([]);
+/** Return shape of the useSchools hook. */
+interface UseSchoolsResult {
+  /** Schools matching the current server-side filters */
+  schools: School[];
+  /** Distinct neighborhood labels for the filter dropdown */
+  neighborhoods: string[];
+  /** Distinct program types for the filter dropdown */
+  programTypes: string[];
+  /** True while a fetch is in flight */
+  isLoading: boolean;
+  /** Human-readable error message, or null */
+  error: string | null;
+  /** Current filter state */
+  filters: SchoolFilters;
+  /** Update the filter state (triggers a debounced refetch) */
+  setFilters: Dispatch<SetStateAction<SchoolFilters>>;
+}
+
+/**
+ * Fetch schools (plus neighborhood/program-type metadata) from the backend,
+ * debouncing refetches as filters change. Network failures surface via `error`.
+ */
+export function useSchools(): UseSchoolsResult {
+  const [schools, setSchools] = useState<School[]>([]);
+  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+  const [programTypes, setProgramTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<SchoolFilters>({
     q: '',
     type: '',
     neighborhood: '',
     program_type: '',
     sector: '',
   });
-  const debounceRef = useRef(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchSchools = useCallback(async (currentFilters) => {
+  const fetchSchools = useCallback(async (currentFilters: SchoolFilters) => {
     setIsLoading(true);
     setError(null);
 
@@ -37,7 +61,7 @@ export function useSchools() {
       const data = await res.json();
       setSchools(data);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch schools');
       setSchools([]);
     } finally {
       setIsLoading(false);
@@ -63,7 +87,9 @@ export function useSchools() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchSchools(filters), 300);
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [filters, fetchSchools]);
 
   return { schools, neighborhoods, programTypes, isLoading, error, filters, setFilters };

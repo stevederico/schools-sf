@@ -1,23 +1,38 @@
+import type { MouseEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@stevederico/skateboard-ui/shadcn/ui/card';
 import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
 import { Clock, DollarSign, Users, Heart } from '@stevederico/skateboard-ui/icons';
-import { useFavorites } from './useFavorites.js';
+import { useFavorites } from './useFavorites';
+import type { School } from './types';
+
+/** Props for a single school card. */
+interface SchoolCardProps {
+  /** The school to render */
+  school: School;
+  /** Called when the card is activated (click or Enter/Space) */
+  onClick: (school: School) => void;
+}
 
 /**
  * Determine if a school is public based on tuition starting with "Public".
  * Program type describes the grade levels offered, not the sector.
  */
-function isPublicSchool(school) {
+function isPublicSchool(school: School): boolean {
   return (school.tuition || '').trim().startsWith('Public');
 }
 
-export default function SchoolCard({ school, onClick }) {
+/**
+ * Card summary of a school with badges, key facts, and a favorite toggle.
+ *
+ * @component
+ */
+export default function SchoolCard({ school, onClick }: SchoolCardProps) {
   const isPreschool = school.school_type === 'preschool';
   const isPublic = isPublicSchool(school);
   const { toggle, isFavorite } = useFavorites();
   const fav = isFavorite(school);
 
-  function handleFavorite(e) {
+  function handleFavorite(e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     toggle(school);
   }
