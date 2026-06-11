@@ -1,27 +1,31 @@
 // ==== IMPORTS ====
 import { Hono } from 'hono'
+import type { Context, Next } from 'hono'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { cors } from 'hono/cors'
 import Stripe from "stripe";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import { compare as legacyBcryptCompare } from "./vendor/legacy-bcrypt.js";
 import crypto from "crypto";
 
-import { databaseManager } from "./adapters/manager.js";
+import { databaseManager } from "./adapters/manager.ts";
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile, mkdir, stat, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { promisify } from 'node:util';
+import type { BackendConfig, BoundDatabase, CsrfTokenEntry, DatabaseConfig, JwtPayload, Logger, Subscription, UserSetFields } from './types.ts';
+
+/** Hono context environment: authMiddleware sets userID for downstream middleware/handlers. */
+type AppEnv = { Variables: { userID: string } };
 
 // ==== SERVER CONFIG ====
 const port = parseInt(process.env.PORT || "8000");
 
 // ==== STRUCTURED LOGGING ====
 // Defined early so all code can use it (no external dependencies)
-const logger = {
+const logger: Logger = {
   error: (message, meta = {}) => {
     const logEntry = {
       level: 'ERROR',
@@ -65,7 +69,7 @@ const logger = {
 };
 
 // ==== CSRF PROTECTION ====
-const csrfTokenStore = new Map(); // userID -> { token, timestamp }
+const csrfTokenStore = new Map<string, CsrfTokenEntry>(); // userID -> { token, timestamp }
 const CSRF_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 const CSRF_MAX_ENTRIES = 50000; // LRU eviction threshold
 
@@ -75,12 +79,11 @@ const CSRF_MAX_ENTRIES = 50000; // LRU eviction threshold
  * Prevents memory leaks in rate limiter and CSRF stores by removing oldest
  * entries based on timestamp when store exceeds maxEntries threshold.
  *
- * @param {Map} store - Map to evict entries from
- * @param {number} maxEntries - Maximum entries before eviction
- * @param {Function} getTimestamp - Function to extract timestamp from value
- * @returns {void}
+ * @param store - Map to evict entries from
+ * @param maxEntries - Maximum entries before eviction
+ * @param getTimestamp - Function to extract timestamp from value
  */
-function evictOldestEntries(store, maxEntries, getTimestamp) {
+function evictOldestEntries<K, V>(store: Map<K, V>, maxEntries: number, getTimestamp: (value: V) => number): void {
   if (store.size <= maxEntries) return;
 
   // Convert to array and sort by timestamp
@@ -100,9 +103,9 @@ function evictOldestEntries(store, maxEntries, getTimestamp) {
  *
  * Uses crypto.randomBytes to generate 64-character hex token.
  *
- * @returns {string} Hex-encoded CSRF token
+ * @returns Hex-encoded CSRF token
  */
-function generateCSRFToken() {
+function generateCSRFToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
@@ -115,11 +118,11 @@ function generateCSRFToken() {
  * Auto-regenerates token if missing (e.g., server restart) for authenticated users.
  *
  * @async
- * @param {Context} c - Hono context
- * @param {Function} next - Next middleware function
- * @returns {Promise<Response|void>} 403 error or continues to next middleware
+ * @param c - Hono context
+ * @param next - Next middleware function
+ * @returns 403 error or continues to next middleware
  */
-async function csrfProtection(c, next) {
+async function csrfProtection(c: Context<AppEnv>, next: Next) {
   if (c.req.method === 'GET' || c.req.path === '/api/signup' || c.req.path === '/api/signin') {
     return next();
   }
@@ -220,24 +223,27 @@ const RATE_LIMITS = {
  * Checks X-Forwarded-For header first (for proxies), falls back to
  * socket address. Handles comma-separated forwarded IPs.
  *
- * @param {Context} c - Hono context
- * @returns {string} Client IP address
+ * @param c - Hono context
+ * @returns Client IP address
  */
-function getClientIP(c) {
+function getClientIP(c: Context<AppEnv>): string {
   const forwarded = c.req.header('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  return c.req.raw?.socket?.remoteAddress || 'unknown';
+  return (c.req.raw as Request & { socket?: { remoteAddress?: string } })?.socket?.remoteAddress || 'unknown';
 }
+
+/** Rate limit category used to bucket requests for throttling. */
+type RateLimitCategory = 'auth' | 'payment' | 'global';
 
 /**
  * Get rate limit category for a given path
  *
- * @param {string} path - Request path
- * @returns {string} Rate limit category: 'auth', 'payment', or 'global'
+ * @param path - Request path
+ * @returns Rate limit category: 'auth', 'payment', or 'global'
  */
-function getRateLimitCategory(path) {
+function getRateLimitCategory(path: string): RateLimitCategory {
   if (path === '/api/signin' || path === '/api/signup') {
     return 'auth';
   }
@@ -250,21 +256,20 @@ function getRateLimitCategory(path) {
 /**
  * Rate limiting middleware
  *
- * Tracks requests per IP+category with sliding window. Returns 429 when
- * limit exceeded. Adds X-RateLimit-Remaining and Retry-After headers.
+ * Currently a pass-through (rate limiting disabled for this app); kept as a
+ * seam so per-IP throttling can be reintroduced without rewiring middleware.
  *
  * @async
- * @param {Context} c - Hono context
- * @param {Function} next - Next middleware function
- * @returns {Promise<Response|void>} 429 error or continues to next middleware
+ * @param c - Hono context
+ * @param next - Next middleware function
  */
-async function rateLimitMiddleware(c, next) {
+async function rateLimitMiddleware(c: Context<AppEnv>, next: Next): Promise<void> {
   await next();
 }
 
 
 // ==== ACCOUNT LOCKOUT ====
-const loginAttemptStore = new Map(); // email -> { attempts, lockedUntil }
+const loginAttemptStore = new Map<string, { attempts: number; lockedUntil: number | null }>(); // email -> { attempts, lockedUntil }
 const LOCKOUT_THRESHOLD = 5; // Lock after 5 failed attempts
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 const LOCKOUT_MAX_ENTRIES = 50000; // LRU eviction threshold
@@ -272,10 +277,10 @@ const LOCKOUT_MAX_ENTRIES = 50000; // LRU eviction threshold
 /**
  * Check if account is locked due to failed login attempts
  *
- * @param {string} email - Email address to check
- * @returns {{locked: boolean, remainingTime: number}} Lock status and remaining time in seconds
+ * @param email - Email address to check
+ * @returns Lock status and remaining time in seconds
  */
-function isAccountLocked(email) {
+function isAccountLocked(email: string): { locked: boolean; remainingTime: number } {
   const record = loginAttemptStore.get(email);
   if (!record) return { locked: false, remainingTime: 0 };
 
@@ -300,10 +305,9 @@ function isAccountLocked(email) {
  *
  * Increments attempt counter. Locks account after LOCKOUT_THRESHOLD failures.
  *
- * @param {string} email - Email address that failed login
- * @returns {void}
+ * @param email - Email address that failed login
  */
-function recordFailedLogin(email) {
+function recordFailedLogin(email: string): void {
   const now = Date.now();
   let record = loginAttemptStore.get(email);
 
@@ -323,10 +327,9 @@ function recordFailedLogin(email) {
 /**
  * Clear failed login attempts on successful login
  *
- * @param {string} email - Email address to clear
- * @returns {void}
+ * @param email - Email address to clear
  */
-function clearFailedLogins(email) {
+function clearFailedLogins(email: string): void {
   loginAttemptStore.delete(email);
 }
 
@@ -366,13 +369,13 @@ if (!isProd()) {
  * Replaces ${VAR_NAME} patterns with process.env values. Logs warning
  * and preserves placeholder if environment variable is undefined.
  *
- * @param {string} str - String with ${VAR_NAME} placeholders
- * @returns {string} String with placeholders replaced
+ * @param str - String with ${VAR_NAME} placeholders
+ * @returns String with placeholders replaced
  */
-function resolveEnvironmentVariables(str) {
+function resolveEnvironmentVariables(str: string): string {
   if (typeof str !== 'string') return str;
 
-  return str.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+  return str.replace(/\$\{([^}]+)\}/g, (match: string, varName: string) => {
     const envValue = process.env[varName];
     if (envValue === undefined) {
       logger.warn('Environment variable not defined, using placeholder', { varName, placeholder: match });
@@ -383,13 +386,13 @@ function resolveEnvironmentVariables(str) {
 }
 
 // Load and process configuration
-let config;
+let config: BackendConfig;
 try {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const configPath = resolve(__dirname, './config.json');
   const configData = await promisify(readFile)(configPath);
-  const rawConfig = JSON.parse(configData.toString());
+  const rawConfig = JSON.parse(configData.toString()) as { staticDir?: string; database: DatabaseConfig };
 
   // Resolve environment variables in configuration
   config = {
@@ -400,7 +403,7 @@ try {
     }
   };
 } catch (err) {
-  logger.error('Failed to load config, using defaults', { error: err.message });
+  logger.error('Failed to load config, using defaults', { error: (err as Error).message });
   config = {
     staticDir: '../dist',
     database: {
@@ -421,9 +424,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
  * unresolved ${VAR} references in database config. Logs warnings for
  * missing variables but does not exit the process.
  *
- * @returns {boolean} True if all required variables are present
+ * @returns True if all required variables are present
  */
-function validateEnvironmentVariables() {
+function validateEnvironmentVariables(): boolean {
   const missing = [];
 
   if (!STRIPE_KEY) missing.push('STRIPE_KEY');
@@ -470,7 +473,7 @@ const dbConfig = config.database;
 
 // ==== SERVICES SETUP ====
 // Stripe setup (only if key is available)
-let stripe = null;
+let stripe: Stripe | null = null;
 if (STRIPE_KEY) {
   stripe = new Stripe(STRIPE_KEY);
 } else {
@@ -486,26 +489,27 @@ const currentDbConfig = dbConfig;
  * Provides shorthand methods for database operations without repeating
  * dbType, db, connectionString on every call.
  *
- * @type {Object}
  * @example
  * // Instead of:
  * await db.findUser( { email });
  * // Use:
  * await db.findUser({ email });
  */
-const db = {
+const db: BoundDatabase = {
   findUser: (query, projection) => databaseManager.findUser(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, query, projection),
   insertUser: (userData) => databaseManager.insertUser(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, userData),
   updateUser: (query, update) => databaseManager.updateUser(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, query, update),
+  deleteUser: (query) => databaseManager.deleteUser(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, query),
   findAuth: (query) => databaseManager.findAuth(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, query),
   insertAuth: (authData) => databaseManager.insertAuth(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, authData),
+  updateAuth: (query, update) => databaseManager.updateAuth(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, query, update),
   findWebhookEvent: (eventId) => databaseManager.findWebhookEvent(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, eventId),
   insertWebhookEvent: (eventId, eventType, processedAt) => databaseManager.insertWebhookEvent(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, eventId, eventType, processedAt),
   executeQuery: (queryObject) => databaseManager.executeQuery(currentDbConfig.dbType, currentDbConfig.db, currentDbConfig.connectionString, queryObject)
 };
 
 // ==== HONO SETUP ====
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // Get __dirname for static file serving
 const __filename = fileURLToPath(import.meta.url);
@@ -574,41 +578,119 @@ app.use('*', async (c, next) => {
 
 const tokenExpirationDays = 30;
 
+const scryptAsync = promisify(crypto.scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
+const SCRYPT_KEYLEN = 64;
+const SCRYPT_SALTLEN = 16;
+
 /**
- * Hash password using bcrypt with 10 salt rounds
+ * Hash password using scrypt (node:crypto)
  *
- * Generates salt and hashes password for secure storage. Uses bcrypt's
- * automatic salt generation.
+ * Generates a random salt and derives a key for secure storage. Output is a
+ * self-describing string: `scrypt$<saltB64url>$<keyB64url>`.
  *
  * @async
- * @param {string} password - Plain text password to hash
- * @returns {Promise<string>} Bcrypt hashed password
- * @throws {Error} If bcrypt hashing fails
+ * @param password - Plain text password to hash
+ * @returns Scrypt hash string
  */
-async function hashPassword(password) {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
+async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.randomBytes(SCRYPT_SALTLEN);
+  const key = await scryptAsync(password, salt, SCRYPT_KEYLEN);
+  return `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}`;
 }
 
 /**
- * Verify password against bcrypt hash using timing-safe comparison
+ * Verify password against a stored hash using timing-safe comparison
+ *
+ * Supports scrypt hashes (current) and legacy bcrypt hashes (`$2*`) so existing
+ * credentials keep working during migration.
  *
  * @async
- * @param {string} password - Plain text password to verify
- * @param {string} hash - Bcrypt hash to compare against
- * @returns {Promise<boolean>} True if password matches hash
+ * @param password - Plain text password to verify
+ * @param stored - Stored hash (scrypt or bcrypt format)
+ * @returns True if password matches stored hash
  */
-async function verifyPassword(password, hash) {
-  return await bcrypt.compare(password, hash);
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (typeof stored !== 'string') return false;
+  if (stored.startsWith('scrypt$')) {
+    const [, saltB64, keyB64] = stored.split('$');
+    const salt = Buffer.from(saltB64, 'base64url');
+    const expected = Buffer.from(keyB64, 'base64url');
+    const candidate = await scryptAsync(password, salt, SCRYPT_KEYLEN);
+    return expected.length === candidate.length && crypto.timingSafeEqual(expected, candidate);
+  }
+  if (stored.startsWith('$2')) {
+    return await legacyBcryptCompare(password, stored);
+  }
+  return false;
+}
+
+/**
+ * Whether a stored hash should be migrated to scrypt on next successful login
+ *
+ * @param stored - Stored hash
+ * @returns True if the hash is in legacy bcrypt format
+ */
+function needsRehash(stored: string): boolean {
+  return typeof stored === 'string' && !stored.startsWith('scrypt$');
 }
 
 /**
  * Calculate JWT expiration timestamp
  *
- * @returns {number} Unix timestamp 30 days in the future
+ * @returns Unix timestamp 30 days in the future
  */
-function tokenExpireTimestamp(){
+function tokenExpireTimestamp(): number {
   return Math.floor(Date.now() / 1000) + tokenExpirationDays * 24 * 60 * 60; // 30 days from now
+}
+
+/**
+ * Sign an HS256 JWT using node:crypto HMAC-SHA256
+ *
+ * Produces a token byte-compatible with jsonwebtoken: header
+ * {"alg":"HS256","typ":"JWT"} followed by the payload, joined and signed
+ * over `base64url(header).base64url(payload)`.
+ *
+ * @param payload - Payload to encode (must include exp)
+ * @param secret - HMAC signing secret
+ * @returns Compact JWT string
+ */
+function jwtSign(payload: JwtPayload, secret: string): string {
+  const head = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url');
+  return `${head}.${body}.${sig}`;
+}
+
+/**
+ * Verify an HS256 JWT and return its payload
+ *
+ * Compatible with tokens issued by jsonwebtoken (same algorithm, same secret).
+ * Throws an Error with name === 'TokenExpiredError' for expired tokens, or a
+ * generic Error for malformed/invalid signatures.
+ *
+ * @param token - JWT string to verify
+ * @param secret - HMAC verification secret
+ * @returns Decoded payload
+ * @throws If token is malformed, signature invalid, or expired
+ */
+function jwtVerify(token: string, secret: string): JwtPayload {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Invalid token');
+  const [head, body, sig] = parts;
+  if (!head || !body || !sig) throw new Error('Invalid token');
+  const expected = crypto.createHmac('sha256', secret).update(`${head}.${body}`).digest('base64url');
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    throw new Error('Invalid signature');
+  }
+  const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as JwtPayload;
+  if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
+    const err = new Error('Token expired');
+    err.name = 'TokenExpiredError';
+    throw err;
+  }
+  return payload;
 }
 
 /**
@@ -618,11 +700,11 @@ function tokenExpireTimestamp(){
  * environment variable.
  *
  * @async
- * @param {string} userID - User ID to encode in token
- * @returns {Promise<string>} Signed JWT token
- * @throws {Error} If JWT_SECRET not configured or signing fails
+ * @param userID - User ID to encode in token
+ * @returns Signed JWT token
+ * @throws If JWT_SECRET not configured or signing fails
  */
-async function generateToken(userID) {
+async function generateToken(userID: string): Promise<string> {
   try {
     if (!JWT_SECRET) {
       throw new Error("JWT_SECRET not configured - authentication disabled");
@@ -631,12 +713,9 @@ async function generateToken(userID) {
     const exp = tokenExpireTimestamp();
     const payload = { userID, exp };
 
-    return jwt.sign(payload, JWT_SECRET, {
-      algorithm: 'HS256',
-      header: { alg: "HS256", typ: "JWT" }
-    });
+    return jwtSign(payload, JWT_SECRET);
   } catch (error) {
-    logger.error('Token generation error', { error: error.message });
+    logger.error('Token generation error', { error: (error as Error).message });
     throw error;
   }
 }
@@ -650,11 +729,11 @@ async function generateToken(userID) {
  * JWT_SECRET not configured.
  *
  * @async
- * @param {Context} c - Hono context
- * @param {Function} next - Next middleware function
- * @returns {Promise<Response|void>} 401/503 error or continues to next middleware
+ * @param c - Hono context
+ * @param next - Next middleware function
+ * @returns 401/503 error or continues to next middleware
  */
-async function authMiddleware(c, next) {
+async function authMiddleware(c: Context<AppEnv>, next: Next) {
   if (!JWT_SECRET) {
     return c.json({ error: "Authentication service unavailable" }, 503);
   }
@@ -666,17 +745,17 @@ async function authMiddleware(c, next) {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+    const payload = jwtVerify(token, JWT_SECRET);
     // Normalize userID to string for consistent Map key usage (CSRF, sessions)
     const normalizedUserID = String(payload.userID);
     c.set('userID', normalizedUserID);
     await next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
+    if ((error as Error).name === 'TokenExpiredError') {
       logger.debug('Token expired');
       return c.json({ error: "Token expired" }, 401);
     }
-    logger.error('Token verification error', { error: error.message });
+    logger.error('Token verification error', { error: (error as Error).message });
     return c.json({ error: "Invalid token" }, 401);
   }
 }
@@ -686,9 +765,9 @@ async function authMiddleware(c, next) {
  *
  * Uses crypto.randomUUID() for cryptographically secure unique identifiers.
  *
- * @returns {string} UUID string
+ * @returns UUID string
  */
-function generateUUID() {
+function generateUUID(): string {
   return crypto.randomUUID();
 }
 
@@ -698,12 +777,12 @@ function generateUUID() {
  * Replaces &, <, >, ", ', / with HTML entities. Returns original value
  * if not a string.
  *
- * @param {string} text - Text to escape
- * @returns {string} HTML-escaped text
+ * @param text - Text to escape
+ * @returns HTML-escaped text
  */
-const escapeHtml = (text) => {
+const escapeHtml = (text: string): string => {
   if (typeof text !== 'string') return text;
-  const map = {
+  const map: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
@@ -721,10 +800,10 @@ const escapeHtml = (text) => {
  * domain, and TLD. Max length 254 characters. Prevents consecutive dots
  * and leading/trailing hyphens.
  *
- * @param {string} email - Email address to validate
- * @returns {boolean} True if valid email format
+ * @param email - Email address to validate
+ * @returns True if valid email format
  */
-const validateEmail = (email) => {
+const validateEmail = (email: unknown): email is string => {
   if (!email || typeof email !== 'string') return false;
   if (email.length > 254) return false; // RFC 5321
 
@@ -741,10 +820,10 @@ const validateEmail = (email) => {
  *
  * Enforces 6-72 character range (bcrypt's maximum is 72 bytes).
  *
- * @param {string} password - Password to validate
- * @returns {boolean} True if valid password length
+ * @param password - Password to validate
+ * @returns True if valid password length
  */
-const validatePassword = (password) => {
+const validatePassword = (password: unknown): password is string => {
   if (!password || typeof password !== 'string') return false;
   if (password.length < 6 || password.length > 72) return false; // bcrypt limit
   return true;
@@ -755,10 +834,10 @@ const validatePassword = (password) => {
  *
  * Enforces 1-100 character range after trimming whitespace.
  *
- * @param {string} name - Name to validate
- * @returns {boolean} True if valid name
+ * @param name - Name to validate
+ * @returns True if valid name
  */
-const validateName = (name) => {
+const validateName = (name: unknown): name is string => {
   if (!name || typeof name !== 'string') return false;
   if (name.trim().length === 0 || name.length > 100) return false;
   return true;
@@ -770,13 +849,12 @@ const validateName = (name) => {
  * Creates CSRF token, stores it in memory, and sets both JWT (HttpOnly) and
  * CSRF (readable) cookies. Consolidates duplicate cookie logic from signup/signin.
  *
- * @async
- * @param {Context} c - Hono context
- * @param {string} userID - User ID to associate with session
- * @param {string} jwtToken - Pre-generated JWT token
- * @returns {string} Generated CSRF token
+ * @param c - Hono context
+ * @param userID - User ID to associate with session
+ * @param jwtToken - Pre-generated JWT token
+ * @returns Generated CSRF token
  */
-function setAuthCookies(c, userID, jwtToken) {
+function setAuthCookies(c: Context<AppEnv>, userID: string, jwtToken: string): string {
   const csrfToken = generateCSRFToken();
   csrfTokenStore.set(userID.toString(), { token: csrfToken, timestamp: Date.now() });
 
@@ -802,6 +880,81 @@ function setAuthCookies(c, userID, jwtToken) {
 }
 
 // ==== STRIPE WEBHOOK (raw body needed) ====
+
+/**
+ * Subscription fields this server reads from Stripe webhook payloads and
+ * subscription retrievals. Pre-basil Stripe API versions expose
+ * current_period_end at the top level; basil (2025-03-31+) moved it onto each
+ * subscription item.
+ */
+type StripeSubscriptionLike = {
+  current_period_end?: number | null;
+  status: string;
+  items?: { data?: Array<{ current_period_end?: number | null }> };
+};
+
+/**
+ * Resolve a subscription's period end across Stripe API versions: top-level
+ * (pre-basil) first, then the first subscription item (basil). Returns null
+ * when absent so callers store a NULL expires instead of binding undefined
+ * (node:sqlite throws on undefined parameters).
+ */
+function getSubscriptionPeriodEnd(sub: StripeSubscriptionLike): number | null {
+  return sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end ?? null;
+}
+
+/**
+ * Resolve a Stripe customer ID to a normalized lowercase email.
+ *
+ * @param stripeID - Stripe customer ID
+ * @returns Normalized email, or null if missing
+ */
+async function resolveCustomerEmail(stripeID: string): Promise<string | null> {
+  const customer = await stripe!.customers.retrieve(stripeID) as Stripe.Customer;
+  if (!customer?.email) {
+    logger.warn('Webhook: Customer has no email', { stripeID });
+    return null;
+  }
+  return customer.email.toLowerCase();
+}
+
+/**
+ * Build the canonical user.subscription patch from a Stripe customer ID
+ * and a Stripe subscription object.
+ *
+ * @param stripeID - Stripe customer ID
+ * @param stripeSub - Stripe subscription object
+ */
+function buildSubscriptionPatch(stripeID: string, stripeSub: Stripe.Subscription): Subscription {
+  const expires = getSubscriptionPeriodEnd(stripeSub as unknown as StripeSubscriptionLike);
+  if (expires === null) {
+    logger.error('Webhook: subscription has no current_period_end at top level or item level', { stripeID });
+  }
+  return {
+    stripeID,
+    expires,
+    status: stripeSub.status
+  };
+}
+
+/**
+ * Apply a $set patch to the user identified by email. Returns false if no
+ * matching user is found (silent no-op so Stripe will not retry).
+ *
+ * @param email - Normalized email
+ * @param $set - MongoDB-style $set fields
+ * @returns True if a user was patched
+ */
+async function applyUserPatch(email: string, $set: UserSetFields): Promise<boolean> {
+  const user = await db.findUser({ email });
+  if (!user) {
+    logger.warn('Webhook: No user found for email', { email });
+    return false;
+  }
+  await db.updateUser({ email }, { $set });
+  return true;
+}
+
 app.post("/api/payment", async (c) => {
   logger.info('Payment webhook received');
 
@@ -809,12 +962,12 @@ app.post("/api/payment", async (c) => {
   const rawBody = await c.req.arrayBuffer();
   const body = Buffer.from(rawBody);
 
-  let event;
+  let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(body, signature, process.env.STRIPE_ENDPOINT_SECRET);
+    event = await stripe!.webhooks.constructEventAsync(body, signature!, process.env.STRIPE_ENDPOINT_SECRET!);
     logger.debug('Webhook event received', { type: event.type });
   } catch (e) {
-    logger.error('Webhook signature verification failed', { error: e.message });
+    logger.error('Webhook signature verification failed', { error: (e as Error).message });
     return c.body(null, 400);
   }
 
@@ -833,90 +986,77 @@ app.post("/api/payment", async (c) => {
 
     // Handle subscription lifecycle events
     if (["customer.subscription.deleted", "customer.subscription.updated", "customer.subscription.created"].includes(event.type)) {
-      const { customer: stripeID, current_period_end, status } = eventObject;
+      const subLike = eventObject as unknown as { customer?: string } & StripeSubscriptionLike;
+      const { customer: stripeID, status } = subLike;
       if (!stripeID) {
         logger.error('Webhook missing customer ID', { type: event.type });
         return c.body(null, 400);
       }
-
-      const customer = await stripe.customers.retrieve(stripeID);
-      if (!customer || !customer.email) {
-        logger.error('Webhook: Customer has no email', { stripeID });
-        return c.body(null, 400);
+      const email = await resolveCustomerEmail(stripeID);
+      if (!email) return c.body(null, 400);
+      const expires = getSubscriptionPeriodEnd(subLike);
+      if (expires === null) {
+        logger.error('Webhook: subscription event has no current_period_end', { type: event.type, eventId: event.id });
       }
-
-      const customerEmail = customer.email.toLowerCase();
-      const user = await db.findUser({ email: customerEmail });
-      if (user) {
-        await db.updateUser({ email: customerEmail }, {
-          $set: { subscription: { stripeID, expires: current_period_end, status } }
-        });
-        logger.info('Subscription updated', { type: event.type, email: customerEmail, status });
-      } else {
-        logger.warn('Webhook: No user found for email', { email: customerEmail });
-      }
+      const ok = await applyUserPatch(email, { subscription: { stripeID, expires, status } });
+      if (ok) logger.info('Subscription updated', { type: event.type, email, status });
     }
 
     // Handle checkout session completed (initial subscription)
     if (event.type === "checkout.session.completed") {
-      const { customer: stripeID, customer_email, subscription: subscriptionId } = eventObject;
+      const { customer: stripeID, customer_email, subscription: subscriptionId } = eventObject as { customer?: string; customer_email?: string | null; subscription?: string };
       if (subscriptionId && stripeID) {
-        const subscriptionPromise = stripe.subscriptions.retrieve(subscriptionId);
-        const customerPromise = !customer_email ? stripe.customers.retrieve(stripeID) : null;
-        const [subscription, fetchedCustomer] = await Promise.all([subscriptionPromise, customerPromise]);
-        const customerEmail = (customer_email || fetchedCustomer.email).toLowerCase();
-        const user = await db.findUser({ email: customerEmail });
-        if (user) {
-          await db.updateUser({ email: customerEmail }, {
-            $set: { subscription: { stripeID, expires: subscription.current_period_end, status: subscription.status } }
-          });
-          logger.info('Checkout completed', { email: customerEmail, status: subscription.status });
+        const [subscription, email] = await Promise.all([
+          stripe!.subscriptions.retrieve(subscriptionId),
+          customer_email ? Promise.resolve(customer_email.toLowerCase()) : resolveCustomerEmail(stripeID)
+        ]);
+        if (email) {
+          const ok = await applyUserPatch(email, { subscription: buildSubscriptionPatch(stripeID, subscription) });
+          if (ok) logger.info('Checkout completed', { email, status: subscription.status });
         }
       }
     }
 
     // Handle invoice paid (recurring payment success)
     if (event.type === "invoice.paid") {
-      const { customer: stripeID, subscription: subscriptionId } = eventObject;
+      const invoice = eventObject as {
+        customer?: string;
+        subscription?: string;
+        parent?: { subscription_details?: { subscription?: string } };
+      };
+      const stripeID = invoice.customer;
+      // Basil (2025-03-31+) moved the invoice's subscription id under parent.subscription_details.
+      const subscriptionId = invoice.subscription ?? invoice.parent?.subscription_details?.subscription;
       if (subscriptionId && stripeID) {
-        const [subscription, customer] = await Promise.all([
-          stripe.subscriptions.retrieve(subscriptionId),
-          stripe.customers.retrieve(stripeID)
+        const [subscription, email] = await Promise.all([
+          stripe!.subscriptions.retrieve(subscriptionId),
+          resolveCustomerEmail(stripeID)
         ]);
-        if (customer?.email) {
-          const customerEmail = customer.email.toLowerCase();
-          const user = await db.findUser({ email: customerEmail });
-          if (user) {
-            await db.updateUser({ email: customerEmail }, {
-              $set: { subscription: { stripeID, expires: subscription.current_period_end, status: subscription.status } }
-            });
-            logger.info('Invoice paid', { email: customerEmail });
-          }
+        if (email) {
+          const ok = await applyUserPatch(email, { subscription: buildSubscriptionPatch(stripeID, subscription) });
+          if (ok) logger.info('Invoice paid', { email });
         }
       }
     }
 
     // Handle invoice payment failed
     if (event.type === "invoice.payment_failed") {
-      const { customer: stripeID } = eventObject;
+      const { customer: stripeID } = eventObject as { customer?: string };
       if (stripeID) {
-        const customer = await stripe.customers.retrieve(stripeID);
-        if (customer?.email) {
-          const customerEmail = customer.email.toLowerCase();
-          const user = await db.findUser({ email: customerEmail });
-          if (user) {
-            await db.updateUser({ email: customerEmail }, {
-              $set: { 'subscription.paymentFailed': true, 'subscription.paymentFailedAt': Date.now() }
-            });
-            logger.warn('Invoice payment failed', { email: customerEmail });
-          }
+        const email = await resolveCustomerEmail(stripeID);
+        if (email) {
+          const ok = await applyUserPatch(email, {
+            'subscription.paymentFailed': true,
+            'subscription.paymentFailedAt': Date.now()
+          });
+          if (ok) logger.warn('Invoice payment failed', { email });
         }
       }
     }
 
     return c.body(null, 200);
   } catch (e) {
-    logger.error('Webhook processing error', { error: e.message });
+    logger.error('Webhook processing error', { error: (e as Error).message });
     return c.body(null, 500);
   }
 });
@@ -931,10 +1071,10 @@ app.get("/api/health", (c) => c.json({ status: "ok", timestamp: Date.now() }));
  * Handles SyntaxError from malformed JSON.
  *
  * @async
- * @param {Context} c - Hono context
- * @returns {Promise<Object|null>} Parsed body or null on error
+ * @param c - Hono context
+ * @returns Parsed body or null on error
  */
-async function parseJsonBody(c) {
+async function parseJsonBody<T = Record<string, unknown>>(c: Context<AppEnv>): Promise<T | null> {
   try {
     return await c.req.json();
   } catch (e) {
@@ -948,7 +1088,7 @@ async function parseJsonBody(c) {
 // ==== AUTH ROUTES ====
 app.post("/api/signup", async (c) => {
   try {
-    const body = await parseJsonBody(c);
+    const body = await parseJsonBody<{ email: string; password: string; name: string }>(c);
     if (!body) {
       return c.json({ error: 'Invalid request body' }, 400);
     }
@@ -985,11 +1125,14 @@ app.post("/api/signup", async (c) => {
         await db.insertAuth({ email: email, password: hash, userID: insertID });
       } catch (authError) {
         // Rollback: delete the user we just created
-        logger.error('Auth insert failed, rolling back user creation', { error: authError.message });
+        logger.error('Auth insert failed, rolling back user creation', { error: (authError as Error).message });
         try {
-          await db.executeQuery({ query: 'DELETE FROM Users WHERE _id = ?', params: [insertID] });
+          const rollback = await db.deleteUser({ _id: insertID });
+          if (rollback.deletedCount !== 1) {
+            logger.error('Rollback failed - orphaned user record', { userID: insertID });
+          }
         } catch (rollbackError) {
-          logger.error('Rollback failed - orphaned user record', { userID: insertID, error: rollbackError.message });
+          logger.error('Rollback failed - orphaned user record', { userID: insertID, error: (rollbackError as Error).message });
         }
         throw authError;
       }
@@ -1005,21 +1148,21 @@ app.post("/api/signup", async (c) => {
         tokenExpires: tokenExpireTimestamp()
       }, 201);
     } catch (e) {
-      if (e.message?.includes('UNIQUE constraint failed') || e.message?.includes('duplicate key') || e.code === 11000) {
+      if ((e as Error).message?.includes('UNIQUE constraint failed') || (e as Error).message?.includes('duplicate key') || (e as { code?: number }).code === 11000) {
         logger.warn('Signup failed - duplicate account');
         return c.json({ error: "Unable to create account with provided credentials" }, 400);
       }
       throw e;
     }
   } catch (e) {
-    logger.error('Signup error', { error: e.message });
+    logger.error('Signup error', { error: (e as Error).message });
     return c.json({ error: "Server error" }, 500);
   }
 });
 
 app.post("/api/signin", async (c) => {
   try {
-    const body = await parseJsonBody(c);
+    const body = await parseJsonBody<{ email: string; password: string }>(c);
     if (!body) {
       return c.json({ error: 'Invalid request body' }, 400);
     }
@@ -1061,6 +1204,17 @@ app.post("/api/signin", async (c) => {
       return c.json({ error: "Invalid credentials" }, 401);
     }
 
+    // Lazy migrate legacy bcrypt hash to scrypt (best-effort, never blocks login)
+    if (needsRehash(auth.password)) {
+      try {
+        const newHash = await hashPassword(password);
+        await db.updateAuth({ email }, { password: newHash });
+        logger.debug('Password hash migrated to scrypt');
+      } catch (e) {
+        logger.warn('Password rehash failed', { error: (e as Error).message });
+      }
+    }
+
     // Get user
     const user = await db.findUser( { email: email });
     if (!user) {
@@ -1090,7 +1244,7 @@ app.post("/api/signin", async (c) => {
       tokenExpires: tokenExpireTimestamp()
     });
   } catch (e) {
-    logger.error('Signin error', { error: e.message });
+    logger.error('Signin error', { error: (e as Error).message });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1121,7 +1275,7 @@ app.post("/api/signout", authMiddleware, async (c) => {
     logger.info('Signout success');
     return c.json({ message: "Signed out successfully" });
   } catch (e) {
-    logger.error('Signout error', { error: e.message });
+    logger.error('Signout error', { error: (e as Error).message });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1138,7 +1292,7 @@ app.get("/api/me", authMiddleware, async (c) => {
 app.put("/api/me", authMiddleware, csrfProtection, async (c) => {
   try {
     const userID = c.get('userID');
-    const body = await c.req.json();
+    const body = await c.req.json<Record<string, unknown>>();
     const { name } = body;
 
     // Validation
@@ -1154,7 +1308,7 @@ app.put("/api/me", authMiddleware, csrfProtection, async (c) => {
     if (!user) return c.json({ error: "User not found" }, 404);
 
     // Whitelist approach - only allow specific fields
-    const update = {};
+    const update: UserSetFields = {};
     for (const [key, value] of Object.entries(body)) {
       if (UPDATEABLE_USER_FIELDS.includes(key)) {
         // Sanitize string values to prevent XSS
@@ -1177,7 +1331,7 @@ app.put("/api/me", authMiddleware, csrfProtection, async (c) => {
     const updatedUser = await db.findUser( { _id: userID });
     return c.json(updatedUser);
   } catch (err) {
-    logger.error('Update user error', { error: err.message });
+    logger.error('Update user error', { error: (err as Error).message });
     return c.json({ error: "Failed to update user" }, 500);
   }
 });
@@ -1186,7 +1340,7 @@ app.put("/api/me", authMiddleware, csrfProtection, async (c) => {
 app.post("/api/usage", authMiddleware, async (c) => {
   try {
     const userID = c.get('userID');
-    const body = await c.req.json();
+    const body = await c.req.json<{ operation?: string }>();
     const { operation } = body; // "check" or "track"
 
     if (!operation || !['check', 'track'].includes(operation)) {
@@ -1207,8 +1361,8 @@ app.post("/api/usage", authMiddleware, async (c) => {
         total: -1,
         isSubscriber: true,
         subscription: {
-          status: user.subscription.status,
-          expiresAt: user.subscription.expires ? new Date(user.subscription.expires * 1000).toISOString() : null
+          status: user.subscription!.status,
+          expiresAt: user.subscription!.expires ? new Date(user.subscription!.expires * 1000).toISOString() : null
         }
       });
     }
@@ -1273,7 +1427,7 @@ app.post("/api/usage", authMiddleware, async (c) => {
     });
 
   } catch (error) {
-    logger.error('Usage tracking error', { error: error.message });
+    logger.error('Usage tracking error', { error: (error as Error).message });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1282,7 +1436,7 @@ app.post("/api/usage", authMiddleware, async (c) => {
 app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
   try {
     const userID = c.get('userID');
-    const body = await c.req.json();
+    const body = await c.req.json<{ email?: string; lookup_key?: string }>();
     const { email, lookup_key } = body;
 
     if (!email || !lookup_key) return c.json({ error: "Missing email or lookup_key" }, 400);
@@ -1291,7 +1445,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     const user = await db.findUser( { _id: userID });
     if (!user || user.email !== email) return c.json({ error: "Email mismatch" }, 403);
 
-    const prices = await stripe.prices.list({ lookup_keys: [lookup_key], expand: ["data.product"] });
+    const prices = await stripe!.prices.list({ lookup_keys: [lookup_key], expand: ["data.product"] });
 
     if (!prices.data || prices.data.length === 0) {
       return c.json({ error: `No price found for lookup_key: ${lookup_key}` }, 400);
@@ -1300,7 +1454,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     // Use FRONTEND_URL env var or origin header, fallback to localhost for dev
     const origin = process.env.FRONTEND_URL || c.req.header('origin') || `http://localhost:${port}`;
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripe!.checkout.sessions.create({
       customer_email: email,
       mode: "subscription",
       payment_method_types: ["card"],
@@ -1312,7 +1466,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     });
     return c.json({ url: session.url, id: session.id, customerID: session.customer });
   } catch (e) {
-    logger.error('Checkout session error', { error: e.message });
+    logger.error('Checkout session error', { error: (e as Error).message });
     return c.json({ error: "Stripe session failed" }, 500);
   }
 });
@@ -1320,7 +1474,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
 app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
   try {
     const userID = c.get('userID');
-    const body = await c.req.json();
+    const body = await c.req.json<{ customerID?: string }>();
     const { customerID } = body;
 
     if (!customerID) return c.json({ error: "Missing customerID" }, 400);
@@ -1333,13 +1487,13 @@ app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
 
     // Use FRONTEND_URL env var or origin header, fallback to localhost for dev
     const origin = process.env.FRONTEND_URL || c.req.header('origin') || `http://localhost:${port}`;
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const portalSession = await stripe!.billingPortal.sessions.create({
       customer: customerID,
       return_url: `${origin}/app/payment?portal=return`,
     });
     return c.json({ url: portalSession.url, id: portalSession.id });
   } catch (e) {
-    logger.error('Portal session error', { error: e.message });
+    logger.error('Portal session error', { error: (e as Error).message });
     return c.json({ error: "Stripe portal failed" }, 500);
   }
 });
@@ -1348,12 +1502,12 @@ app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
 import { DatabaseSync } from 'node:sqlite';
 
 const schoolsDbPath = resolve(__dirname, './databases/preschools.db');
-let schoolsDb;
+let schoolsDb: InstanceType<typeof DatabaseSync> | undefined;
 try {
   schoolsDb = new DatabaseSync(schoolsDbPath, { readOnly: true });
   logger.info('Schools database opened', { path: schoolsDbPath });
 } catch (err) {
-  logger.error('Failed to open schools database', { error: err.message, path: schoolsDbPath });
+  logger.error('Failed to open schools database', { error: (err as Error).message, path: schoolsDbPath });
 }
 
 app.get('/api/schools', (c) => {
@@ -1364,16 +1518,16 @@ app.get('/api/schools', (c) => {
   const programType = c.req.query('program_type');
   const q = c.req.query('q');
 
-  let queries = [];
-  let allParams = [];
+  const queries: string[] = [];
+  const allParams: string[] = [];
 
   for (const table of ['preschool', 'upperschool']) {
     if (type && type !== table) continue;
 
     const isPreschool = table === 'preschool';
     const tableName = isPreschool ? 'preschools' : 'upperschools';
-    const conditions = [];
-    const params = [];
+    const conditions: string[] = [];
+    const params: string[] = [];
 
     if (neighborhood) {
       conditions.push('neighborhood = ?');
@@ -1405,7 +1559,7 @@ app.get('/api/schools', (c) => {
     const rows = stmt.all(...allParams);
     return c.json(rows);
   } catch (err) {
-    logger.error('Schools query failed', { error: err.message });
+    logger.error('Schools query failed', { error: (err as Error).message });
     return c.json({ error: 'Failed to query schools' }, 500);
   }
 });
@@ -1419,10 +1573,10 @@ app.get('/api/neighborhoods', (c) => {
       UNION ALL
       SELECT neighborhood FROM upperschools
     ) ORDER BY neighborhood`;
-    const rows = schoolsDb.prepare(sql).all();
+    const rows = schoolsDb.prepare(sql).all() as Array<{ neighborhood: string | null }>;
     return c.json(rows.map(r => r.neighborhood).filter(Boolean));
   } catch (err) {
-    logger.error('Neighborhoods query failed', { error: err.message });
+    logger.error('Neighborhoods query failed', { error: (err as Error).message });
     return c.json({ error: 'Failed to query neighborhoods' }, 500);
   }
 });
@@ -1436,10 +1590,10 @@ app.get('/api/program-types', (c) => {
       UNION ALL
       SELECT program_type FROM upperschools
     ) ORDER BY program_type`;
-    const rows = schoolsDb.prepare(sql).all();
+    const rows = schoolsDb.prepare(sql).all() as Array<{ program_type: string | null }>;
     return c.json(rows.map(r => r.program_type).filter(Boolean));
   } catch (err) {
-    logger.error('Program types query failed', { error: err.message });
+    logger.error('Program types query failed', { error: (err as Error).message });
     return c.json({ error: 'Failed to query program types' }, 500);
   }
 });
@@ -1490,9 +1644,9 @@ app.onError((err, c) => {
  * Reads the NODE_ENV environment variable. Returns true only when
  * NODE_ENV is explicitly set to "production".
  *
- * @returns {boolean} True if NODE_ENV === "production"
+ * @returns True if NODE_ENV === "production"
  */
-function isProd() {
+function isProd(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
@@ -1503,10 +1657,8 @@ function isProd() {
  * then backend/.env.local for project-specific overrides (wins on conflict).
  * Creates .env from .env.example if it doesn't exist. Only called in
  * non-production mode — Railway injects vars directly in prod.
- *
- * @returns {void}
  */
-function loadLocalENV() {
+function loadLocalENV(): void {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const envFilePath = resolve(__dirname, './.env');
@@ -1521,7 +1673,7 @@ function loadLocalENV() {
       const exampleData = readFileSync(envExamplePath, 'utf8');
       writeFileSync(envFilePath, exampleData);
     } catch (exampleErr) {
-      logger.error('Failed to create .env from template', { error: exampleErr.message });
+      logger.error('Failed to create .env from template', { error: (exampleErr as Error).message });
       return;
     }
   }
@@ -1537,10 +1689,9 @@ function loadLocalENV() {
  * Parse a .env file and apply key=value pairs to process.env.
  * Skips blank lines and comments. Handles quoted values and values containing '='.
  * Silently skips if file doesn't exist.
- * @param {string} filePath - Absolute path to the .env file
- * @returns {void}
+ * @param filePath - Absolute path to the .env file
  */
-function loadEnvFile(filePath) {
+function loadEnvFile(filePath: string): void {
   try {
     const data = readFileSync(filePath, 'utf8');
     for (let line of data.split(/\r?\n/)) {
@@ -1572,7 +1723,7 @@ const server = serve({
 
 // Handle graceful shutdown on SIGTERM and SIGINT - NEED THIS FOR PROXY
 if (typeof process !== 'undefined') {
-  const gracefulShutdown = async (signal) => {
+  const gracefulShutdown = async (signal: string) => {
     console.log(`${signal} received. Shutting down gracefully...`);
 
     // Close HTTP server first
