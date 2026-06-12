@@ -13,9 +13,10 @@ npm run install-all    # Install root + backend workspace
 npm run start          # Frontend (5173) + backend (8000)
 npm run front          # Frontend only
 npm run server         # Backend only
-npm run build          # Production build into ./dist
-npm run test           # vitest run
-npm run test:watch     # vitest watch
+npm run build          # Production build into ./dist (typecheck-gated)
+npm run typecheck      # tsc --noEmit for root + backend (no build-step typecheck)
+npm run test           # typecheck, then backend tests (node --test, backend workspace)
+npm run test:watch     # backend tests in watch mode
 ```
 
 Kill ports 5173 / 8000 before starting if they're already bound.
@@ -23,13 +24,13 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 ## Architecture
 
 ### Frontend
-- **Entry:** `src/main.tsx` — 27 lines, uses `createSkateboardApp` with a single `home` route.
-- **Main view:** `src/components/DirectoryView.jsx` — unified list+map view, state deep-linked via URL params.
-- **Map:** `src/components/NeighborhoodMap.jsx` — react-leaflet, SVG pin icons, `FitBounds` helper auto-zooms to result set.
-- **Detail sheet:** `src/components/SchoolDetailSheet.jsx` — shadcn Sheet, includes "View on map" deep link.
-- **Filter bar:** `src/components/FilterBar.jsx` — neighborhood, program type, sector, favorites, sort.
-- **Data hooks:** `src/components/useSchools.js` (fetch + filter), `src/components/useFavorites.js` (localStorage).
-- **Tuition parser:** `src/components/tuitionSort.js` — handles `$X–$Y/year`, `$X/month`, public schools, and unknowns. Tested in `tuitionSort.test.js`.
+- **Entry:** `src/main.tsx` — uses `createSkateboardApp` with a single `home` route.
+- **Main view:** `src/components/DirectoryView.tsx` — unified list+map view, state deep-linked via URL params.
+- **Map:** `src/components/NeighborhoodMap.tsx` — react-leaflet, SVG pin icons, `FitBounds` helper auto-zooms to result set.
+- **Detail sheet:** `src/components/SchoolDetailSheet.tsx` — shadcn Sheet, includes "View on map" deep link.
+- **Filter bar:** `src/components/FilterBar.tsx` — neighborhood, program type, sector, favorites, sort.
+- **Data hooks:** `src/components/useSchools.ts` (fetch + filter), `src/components/useFavorites.ts` (localStorage).
+- **Tuition parser:** `src/components/tuitionSort.ts` — handles `$X–$Y/year`, `$X/month`, public schools, and unknowns. Tested in `tuitionSort.test.ts`.
 
 ### URL State
 `DirectoryView` reads and writes these query params:
@@ -72,7 +73,7 @@ Deployed to Railway project `bixby`, service `schools`:
 
 ## Tuition Data
 
-Tuition values in `preschools.db` are free-text (e.g., `$16,350-$22,000/year`, `Not publicly available`, `Public (SFUSD)`). The parser in `tuitionSort.js` extracts a numeric sort key; unknown/unpriced values intentionally sort **above** the highest priced row so users see them first.
+Tuition values in `preschools.db` are free-text (e.g., `$16,350-$22,000/year`, `Not publicly available`, `Public (SFUSD)`). The parser in `tuitionSort.ts` extracts a numeric sort key; unknown/unpriced values intentionally sort **above** the highest priced row so users see them first.
 
 OCR was used for Stella Maris, Little School, Little Bee, and similar image-only tuition charts. Keep the `research/` directory when updating tuition — it has the source snapshots.
 
@@ -88,7 +89,7 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 
 ## Updating From Skateboard Boilerplate
 
-`package.json` has `"skateboardVersion": "2.35.0"`. Reference repo: https://github.com/stevederico/skateboard. Diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
+`package.json` has a `skateboardVersion` field (currently `3.14.0`) indicating which boilerplate release was used. Reference repo: https://github.com/stevederico/skateboard. Run `node scripts/update-skateboard.js` to 3-way merge template changes onto local edits, then diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
 
 ## TypeScript Standards
 
@@ -96,7 +97,7 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 
 - TypeScript everywhere — `.ts` / `.tsx` files, `strict` mode always on
 - `@types` packages are dev-only dependencies (`@types/node`, `@types/react`, `@types/react-dom`)
-- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit`; it gates `build` and `test`
+- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit` for both root and backend; it gates `build`, `prod`, and `test`
 - Always use ES modules — never use `require()`
 
 ### TypeScript Anti-Patterns (prohibited)
@@ -107,6 +108,7 @@ All of these silence the compiler instead of proving correctness:
 - Never use `as` casts to silence errors (especially `as unknown as X`) — prove the type instead
 - Never use `!` non-null assertions — handle the null/undefined case
 - Never use `@ts-ignore` — if truly unavoidable, use `@ts-expect-error` with a reason comment (it fails when the error goes away)
+- Never use `@ts-nocheck` — it disables type checking for the entire file; stronger than `@ts-ignore` and equally prohibited
 - Never disable or loosen `strict` in tsconfig
 - Never use loose built-in types (`Function`, `object`, `{}`) — write precise signatures and shapes
 - Never cast unvalidated data at boundaries — no `JSON.parse(x) as User` without a runtime check

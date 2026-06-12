@@ -32,12 +32,6 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
     setFilters(prev => ({ ...prev, [key]: value }));
   }
 
-  const sortLabel = (v: string | null) => {
-    if (v === 'price-asc') return 'Price: Low → High';
-    if (v === 'price-desc') return 'Price: High → Low';
-    return 'Sort: Default';
-  };
-
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center">
       <div className="relative flex-1 min-w-0">
@@ -53,7 +47,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.neighborhood || 'all'} onValueChange={(v) => updateFilter('neighborhood', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-48" aria-label="Filter by neighborhood">
-          <SelectValue>{(v) => (v === 'all' || !v ? 'All Neighborhoods' : v)}</SelectValue>
+          <SelectValue placeholder="All Neighborhoods" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Neighborhoods</SelectItem>
@@ -65,7 +59,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.program_type || 'all'} onValueChange={(v) => updateFilter('program_type', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-44" aria-label="Filter by program type">
-          <SelectValue>{(v) => (v === 'all' || !v ? 'All Types' : v)}</SelectValue>
+          <SelectValue placeholder="All Types" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Types</SelectItem>
@@ -77,7 +71,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={filters.sector || 'all'} onValueChange={(v) => updateFilter('sector', !v || v === 'all' ? '' : v)}>
         <SelectTrigger className="w-full md:w-32" aria-label="Filter by public or private">
-          <SelectValue>{(v) => (v === 'all' || !v ? 'All Sectors' : v === 'public' ? 'Public' : 'Private')}</SelectValue>
+          <SelectValue placeholder="All Sectors" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Sectors</SelectItem>
@@ -96,7 +90,7 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
 
       <Select value={sort || 'default'} onValueChange={(v) => onSortChange(v === 'price-asc' || v === 'price-desc' ? v : '')}>
         <SelectTrigger className="w-full md:w-44" aria-label="Sort schools">
-          <SelectValue>{(v) => sortLabel(v === 'default' ? '' : v)}</SelectValue>
+          <SelectValue placeholder="Sort: Default" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="default">Sort: Default</SelectItem>
