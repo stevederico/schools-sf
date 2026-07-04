@@ -12,9 +12,6 @@ dist
 dist-ssr
 *.local
 
-deno.lock
-package-lock.json
-
 # Environment variables
 .env
 .env.local
@@ -24,6 +21,10 @@ package-lock.json
 backend/.env
 
 .claude/
+.agent-browser/
+.playwright-mcp/
+deno.lock
+bun.lock
 
 # Editor directories and files
 .vscode/*
