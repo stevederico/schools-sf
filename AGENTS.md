@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Project-specific guidance for Claude Code. Global coding standards live in `~/.agents/AGENTS.md` — this file covers only what's unique to this repo.
+Project-specific guidance for AI agents. Global coding standards live in `~/.agents/AGENTS.md` — this file covers only what's unique to this repo.
 
 ## What This Is
 
