@@ -658,9 +658,9 @@ export function __testBuildSecureHeadersOptions(prod: boolean = isProd()) {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "https:"],
+      imgSrc: ["'self'", "https:", "data:"],
       fontSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://*.tile.openstreetmap.org"],
       frameAncestors: ["'none'"]
     },
     strictTransportSecurity: !prod ? false as const : 'max-age=31536000; includeSubDomains; preload',
