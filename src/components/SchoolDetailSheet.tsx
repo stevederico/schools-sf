@@ -27,15 +27,16 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }: SchoolDet
   const { toggle, isFavorite } = useFavorites();
 
   if (!school) return null;
+  const selected = school;
 
-  const isPreschool = school.school_type === 'preschool';
-  const fav = isFavorite(school);
-  const hasHours = school.hours && school.hours !== 'Not publicly available' && school.hours !== 'Not available' && school.hours !== 'N/A';
-  const hasTuition = school.tuition && school.tuition !== 'Not publicly available' && school.tuition !== 'N/A';
+  const isPreschool = selected.school_type === 'preschool';
+  const fav = isFavorite(selected);
+  const hasHours = selected.hours && selected.hours !== 'Not publicly available' && selected.hours !== 'Not available' && selected.hours !== 'N/A';
+  const hasTuition = selected.tuition && selected.tuition !== 'Not publicly available' && selected.tuition !== 'N/A';
 
   function handleViewOnMap() {
     onClose();
-    navigate(`/app/home?highlight=${school!.id}&type=${school!.school_type}`);
+    navigate(`/app/home?highlight=${selected.id}&type=${selected.school_type}`);
   }
 
   return (

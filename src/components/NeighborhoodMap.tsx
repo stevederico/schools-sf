@@ -46,9 +46,12 @@ function FitBounds({ schools }: FitBoundsProps) {
   useEffect(() => {
     if (schools.length === 0) return;
 
-    const positions = schools
-      .filter((s) => s.lat && s.lng)
-      .map((s): LatLngTuple => [s.lat as number, s.lng as number]);
+    const positions: LatLngTuple[] = [];
+    for (const s of schools) {
+      if (typeof s.lat === 'number' && typeof s.lng === 'number') {
+        positions.push([s.lat, s.lng]);
+      }
+    }
 
     if (positions.length > 0) {
       const bounds = L.latLngBounds(positions);
