@@ -3,6 +3,7 @@ import { createSkateboardApp } from '@stevederico/skateboard-ui/App';
 import type { AppRoute } from '@stevederico/skateboard-ui/App';
 import Layout from '@stevederico/skateboard-ui/Layout';
 import CommandMenu from './components/CommandMenu';
+import AnalyticsProvider from './components/AnalyticsProvider';
 import constants from './constants.json';
 
 import DirectoryView from './components/DirectoryView';
@@ -24,5 +25,6 @@ createSkateboardApp({
   constants,
   appRoutes,
   defaultRoute: 'home',
-  overrides: { layout: AppLayout }
+  overrides: { layout: AppLayout },
+  wrapper: AnalyticsProvider,
 });
