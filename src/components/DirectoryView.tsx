@@ -79,8 +79,11 @@ export default function DirectoryView() {
   }
 
   return (
-    <main className={view === 'map' ? 'flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4' : 'flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full'}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+    <main
+      data-section-id="school-directory"
+      className={view === 'map' ? 'flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4' : 'flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full'}
+    >
+      <div className="flex flex-col gap-3 md:flex-row md:items-center" data-section-id="directory-filters">
         <div className="flex-1 min-w-0">
           <FilterBar
             filters={filters}
@@ -98,14 +101,15 @@ export default function DirectoryView() {
           aria-label={favoritesOnly ? 'Show all schools' : 'Show favorites only'}
           aria-pressed={favoritesOnly}
           title={favoritesOnly ? 'Show all schools' : 'Show favorites only'}
+          data-umami-event="favorites-filter-toggled"
         >
           <Heart className={`size-4 ${favoritesOnly ? 'fill-current' : ''}`} aria-hidden="true" />
         </Button>
         <ToggleGroup value={[view]} onValueChange={setView} variant="outline" aria-label="View mode">
-          <ToggleGroupItem value="list" aria-label="List view">
+          <ToggleGroupItem value="list" aria-label="List view" data-umami-event="view-list">
             <List className="size-4" aria-hidden="true" />
           </ToggleGroupItem>
-          <ToggleGroupItem value="map" aria-label="Map view">
+          <ToggleGroupItem value="map" aria-label="Map view" data-umami-event="view-map">
             <MapIcon className="size-4" aria-hidden="true" />
           </ToggleGroupItem>
         </ToggleGroup>
