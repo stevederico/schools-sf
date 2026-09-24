@@ -1,3 +1,13 @@
+0.15.0
+
+  Migrate skateboard 5.6
+  Replace Node backend
+  Port schools routes
+  Keep schools CSP
+  Pin skateboard-ui 5.1.0
+  Switch icons to lucide
+  Sync favorites across views
+
 0.14.0
 
   Bump skateboard 3.4.0

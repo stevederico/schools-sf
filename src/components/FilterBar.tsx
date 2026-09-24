@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@stevederico/skateboard-ui/shadcn/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@stevederico/skateboard-ui/shadcn/ui/tabs';
-import { Search } from '@stevederico/skateboard-ui/icons';
+import { Search } from 'lucide-react';
 import type { SchoolFilters, SortOption } from './types';
 
 /** Props for the schools filter toolbar. */
