@@ -9,17 +9,19 @@ Public directory of San Francisco preschools and K-12 schools. No login, no paym
 ## Development Commands
 
 ```bash
-npm run install-all    # Install root + backend workspace
-npm run start          # Frontend (5173) + backend (8000)
-npm run front          # Frontend only
-npm run server         # Backend only
-npm run build          # Production build into ./dist (typecheck-gated)
-npm run typecheck      # tsc --noEmit for root + backend (no build-step typecheck)
-npm run test           # typecheck, then backend tests (node --test, backend workspace)
-npm run test:watch     # backend tests in watch mode
+npm run install-all    # Frontend dependencies
+npm run start          # Frontend (5173). Proxies are not used; the API is on :8000
+npm run front          # Same as start
+cd backend && cargo run    # Backend on :8000
+npm run build          # Frontend typecheck + Vite production build
+npm run typecheck      # tsc --noEmit for the frontend
+npm test               # typecheck, script tests, docs links, tuition parser
+cd backend && cargo test --locked
 ```
 
 Kill ports 5173 / 8000 before starting if they're already bound.
+
+The backend is zero-crate Rust. `backend/Cargo.toml` `[dependencies]` stays empty. Do not add a crate. Do not restore the Node/Hono server.
 
 ## Architecture
 
@@ -31,6 +33,7 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 - **Filter bar:** `src/components/FilterBar.tsx` — neighborhood, program type, sector, favorites, sort.
 - **Data hooks:** `src/components/useSchools.ts` (fetch + filter), `src/components/useFavorites.ts` (localStorage).
 - **Tuition parser:** `src/components/tuitionSort.ts` — handles `$X–$Y/year`, `$X/month`, public schools, and unknowns. Tested in `tuitionSort.test.ts`.
+- **Icons:** named imports from `lucide-react`. Do not import `@stevederico/skateboard-ui/icons` or `DynamicIcon`.
 
 ### URL State
 `DirectoryView` reads and writes these query params:
@@ -40,14 +43,16 @@ Kill ports 5173 / 8000 before starting if they're already bound.
 - `highlight=<id>&type=<preschool|upperschool>` — marker highlight from detail sheet's "View on map"
 
 ### Backend
-- **Server:** `backend/server.ts` — Hono + `@hono/node-server`, serves the built frontend from `../dist`.
-- **Schools DB:** `backend/databases/preschools.db` — opened read-only at startup via native `node:sqlite`. Two tables: `preschools` (65 rows) and `upperschools` (42 rows).
-- **Auth DB:** `backend/databases/PreschoolTmp.db` — used only if auth flows are exercised. Created on demand via the skateboard adapter manager.
+- **Server:** `backend/src/` — zero-crate Rust (`cargo run`). Serves the built frontend from `../dist`.
+- **Schools DB:** `backend/databases/preschools.db` — opened read-only at startup. Two tables: `preschools` and `upperschools`.
+- **Auth DB:** `backend/databases/PreschoolTmp.db` — created on demand from `backend/config.json`. Used only if auth flows are exercised.
 
 ### Schools API
 - `GET /api/schools` — filters: `type`, `neighborhood`, `program_type`, `q`. Returns union of both tables with a `school_type` discriminator.
 - `GET /api/neighborhoods` — distinct neighborhoods across both tables.
 - `GET /api/program-types` — distinct program types across both tables.
+
+Literal `/api/...` paths are matched before the `/api/` prefix catch-all. Authenticated updates and deletes use the caller user id from the session.
 
 See `docs/API.md` for request/response shapes and `docs/SCHEMA.md` for column definitions.
 
@@ -61,7 +66,9 @@ preschools.db  →  /api/schools  →  useSchools()  →  DirectoryView
 
 ## Dockerfile Notes
 
-Backend is an npm workspace. `npm install` at root **hoists all dependencies to `/app/node_modules`** — `backend/node_modules` does not exist. The Dockerfile must copy `/app/node_modules` (not `/app/backend/node_modules`) into the runtime stage. This tripped up the Railway deploy in 0.10.1.
+The image builds the Vite frontend and the Rust binary. `preschools.db` is copied to `/app/backend/databases/preschools.db`. Do not exclude that file in `.dockerignore`.
+
+`SKATEBOARD_BACKEND_DIR=/app/backend`. The auth database path in `config.json` is relative to that directory.
 
 ## Deployment
 
@@ -89,7 +96,9 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 
 ## Updating From Skateboard Boilerplate
 
-`package.json` has a `skateboardVersion` field (currently `3.14.0`) indicating which boilerplate release was used. Reference repo: https://github.com/stevederico/skateboard. Run `node scripts/update-skateboard.js` to 3-way merge template changes onto local edits, then diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
+`package.json` has a `skateboardVersion` field (currently `5.6.0`) indicating which boilerplate release was used. Reference repo: https://github.com/stevederico/skateboard. Run `node scripts/update-skateboard.js` to 3-way merge template changes onto local edits, then diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
+
+`@stevederico/skateboard-ui` is pinned exact at `5.1.0`. Install it with `npm install @stevederico/skateboard-ui@5.1.0 --save-exact --min-release-age=0`. Do not put `--min-release-age=0` on any other install command.
 
 ## TypeScript Standards
 
@@ -97,7 +106,7 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 
 - TypeScript everywhere — `.ts` / `.tsx` files, `strict` mode always on
 - `@types` packages are dev-only dependencies (`@types/node`, `@types/react`, `@types/react-dom`)
-- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit` for both root and backend; it gates `build`, `prod`, and `test`
+- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit` for the frontend; it gates `build`, `prod`, and `test`. Backend checks are `cargo test --locked`
 - Always use ES modules — never use `require()`
 
 ### TypeScript Anti-Patterns (prohibited)

@@ -5,7 +5,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTuition, compareTuition } from './tuitionSort';
+import { parseTuition, compareTuition } from './tuitionSort.ts';
 
 describe('parseTuition', () => {
   it('parses a simple annual amount', () => {
