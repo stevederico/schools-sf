@@ -8,7 +8,7 @@ import { compareTuition } from './tuitionSort';
 import FilterBar from './FilterBar';
 import SchoolCard from './SchoolCard';
 import SchoolDetailSheet from './SchoolDetailSheet';
-import { School, List, Map as MapIcon, Heart } from '@stevederico/skateboard-ui/icons';
+import { Heart, List, Map as MapIcon, School } from 'lucide-react';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 import type { School as SchoolRecord, SortOption } from './types';
 

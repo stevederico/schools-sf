@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router';
 import { getState } from '@stevederico/skateboard-ui/Context';
+import { useSafeNavigate } from '@stevederico/skateboard-ui/Utilities';
+import { Filter, MapPin, School } from 'lucide-react';
 import {
   Command,
   CommandDialog,
@@ -11,7 +12,13 @@ import {
   CommandItem,
   CommandShortcut,
 } from '@stevederico/skateboard-ui/shadcn/ui/command';
-import DynamicIcon from '@stevederico/skateboard-ui/DynamicIcon';
+/** Lucide icon for a constants.json page entry. Names are the app's known set. */
+function PageIcon({ name }: { name: string }) {
+  const className = 'shrink-0 text-muted-foreground';
+  if (name === 'map-pin') return <MapPin size={16} className={className} aria-hidden />;
+  if (name === 'filter') return <Filter size={16} className={className} aria-hidden />;
+  return <School size={16} className={className} aria-hidden />;
+}
 
 /** Page entry from constants.json's pages array. */
 interface PageEntry {
@@ -39,7 +46,7 @@ interface PageEntry {
  */
 export default function CommandMenu() {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useSafeNavigate();
   const { state } = getState();
   const pages: PageEntry[] = state.constants?.pages || [];
 
@@ -90,7 +97,7 @@ export default function CommandMenu() {
                 onSelect={() => handleSelect(page.url)}
                 className="gap-3 px-3 py-2.5"
               >
-                <DynamicIcon name={page.icon} size={16} className="shrink-0 text-muted-foreground" />
+                <PageIcon name={page.icon} />
                 <span>{page.title}</span>
               </CommandItem>
             ))}

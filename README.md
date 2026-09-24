@@ -52,7 +52,7 @@ Frontend on `http://localhost:5173`, backend on `http://localhost:8000`.
 
 ### 🛠️ **Stack**
 - **React 19 + Vite 7** frontend
-- **Hono + Node.js SQLite** backend serving a read-only schools database
+- **Rust + SQLite** backend serving a read-only schools database
 - **Tailwind v4** with shadcn/ui primitives via skateboard-ui
 - **react-leaflet** for the map, **@tanstack/react-table** for tabular views, **@dnd-kit** for interactions
 
@@ -92,19 +92,19 @@ Stripe variables are optional — the site runs without payments.
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **React** | v19 | UI framework |
-| **Vite** | v7.1+ | Build tool and dev server |
-| **Tailwind CSS** | v4.1+ | Styling |
-| **React Router** | v7.9+ | Routing |
+| **Vite** | v8 | Build tool and dev server |
+| **Tailwind CSS** | v4 | Styling |
+| **React Router** | v7 | URL state (via skateboard-ui) |
 | **react-leaflet** | v5 | Map rendering |
-| **Hono** | v4+ | Backend server |
-| **Node SQLite** | v22+ | Database (native `node:sqlite`) |
-| **skateboard-ui** | v2.22+ | App shell and shadcn primitives |
+| **Rust** | stable | Backend server (zero-crate) |
+| **SQLite** | system libsqlite3 | Schools directory and optional auth |
+| **skateboard-ui** | 5.1.0 | App shell and shadcn primitives |
 
 <br />
 
 ## 📚 Architecture
 
-Built on the skateboard Application Shell pattern — skateboard-ui owns routing, layout, and auth scaffolding; this repo owns the browse experience (`DirectoryView`, `NeighborhoodMap`, `SchoolDetailSheet`, `FilterBar`) and the schools API endpoints in `backend/server.js`.
+Built on the skateboard Application Shell pattern — skateboard-ui owns routing, layout, and auth scaffolding; this repo owns the browse experience (`DirectoryView`, `NeighborhoodMap`, `SchoolDetailSheet`, `FilterBar`) and the schools API endpoints in `backend/src/routes.rs`.
 
 Three API endpoints power the frontend:
 
@@ -116,7 +116,7 @@ Three API endpoints power the frontend:
 
 ## 🚀 Deployment
 
-See [docs/DEPLOY.md](docs/DEPLOY.md). The Dockerfile builds the frontend and serves it from the Hono backend; mount a persistent volume at `/app/databases` if you need the user/auth database to survive redeploys.
+See [docs/DEPLOY.md](docs/DEPLOY.md). The Dockerfile builds the frontend and the Rust backend. The schools database is copied into the image. Mount a persistent volume at `/app/databases` if you need the user/auth database to survive redeploys.
 
 <br />
 

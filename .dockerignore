@@ -16,13 +16,30 @@ npm-debug.log*
 .vscode/
 .idea/
 
-# Environment
+# Environment — never bake secrets (symlinks to shared secret files are the classic leak)
 .env
 .env.*
+**/.env
+**/.env.*
+!**/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Build artifacts
 dist/
 build/
+backend/coverage/
+backend/target/
+
+# Local data — never bake auth databases into images.
+# preschools.db is shipped directory data, not a writable user database.
+**/*.db
+**/*.db-shm
+**/*.db-wal
+!backend/databases/preschools.db
+uploads/
+**/uploads/
 
 # Misc
 *.md

@@ -1,8 +1,8 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@stevederico/skateboard-ui/shadcn/ui/sheet';
 import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
-import { ExternalLink, MapPin, Clock, DollarSign, Users, Heart } from '@stevederico/skateboard-ui/icons';
-import { useNavigate } from 'react-router';
+import { Clock, DollarSign, ExternalLink, Heart, MapPin, Users } from 'lucide-react';
+import { useSafeNavigate } from '@stevederico/skateboard-ui/Utilities';
 import { useFavorites } from './useFavorites';
 import type { School } from './types';
 
@@ -23,7 +23,7 @@ interface SchoolDetailSheetProps {
  * @component
  */
 export default function SchoolDetailSheet({ school, isOpen, onClose }: SchoolDetailSheetProps) {
-  const navigate = useNavigate();
+  const navigate = useSafeNavigate();
   const { toggle, isFavorite } = useFavorites();
 
   if (!school) return null;
