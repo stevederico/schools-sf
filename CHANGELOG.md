@@ -1,3 +1,8 @@
+0.17.0
+
+  Fix Railway host
+  Update school counts
+
 0.16.0
 
   Flag curated schools

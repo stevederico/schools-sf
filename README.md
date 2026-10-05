@@ -12,7 +12,7 @@
 
 ## 🎬 Demo
 
-Open the live site, browse 107 schools on a Leaflet map or in a grid, filter by neighborhood, program type, and sector, sort by tuition, and save favorites to localStorage — no login required.
+Open the live site, browse 368 schools on a Leaflet map or in a grid, filter by neighborhood, program type, and sector, sort by tuition, and save favorites to localStorage — no login required.
 
 <br />
 
@@ -45,7 +45,7 @@ Frontend on `http://localhost:5173`, backend on `http://localhost:8000`.
 - **Favorites toggle** — heart schools, persists in localStorage, filter by favorites-only
 
 ### 🏫 **Curated Data**
-- **65 preschools + 42 upper schools** across San Francisco
+- **368 schools:** 321 preschools and 47 upper schools. The curated set is 65 preschools and 47 upper schools. 256 licensed preschool centers are marked Added.
 - **Tuition researched** from public sources with OCR-extracted rate charts where available
 - **Neighborhood coverage** spans Marina, Presidio, Pacific Heights, and beyond
 - **Age cutoff and cohort placement** reference doc included
