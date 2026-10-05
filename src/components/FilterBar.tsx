@@ -3,7 +3,7 @@ import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@stevederico/skateboard-ui/shadcn/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@stevederico/skateboard-ui/shadcn/ui/tabs';
 import { Search } from 'lucide-react';
-import type { SchoolFilters, SortOption } from './types';
+import type { CatalogFilter, SchoolFilters, SortOption } from './types';
 
 /** Props for the schools filter toolbar. */
 interface FilterBarProps {
@@ -19,6 +19,10 @@ interface FilterBarProps {
   sort: SortOption;
   /** Called when the sort selection changes */
   onSortChange: (sort: SortOption) => void;
+  /** Curated catalog, added centers, or both */
+  catalog: CatalogFilter;
+  /** Called when the catalog slice changes */
+  onCatalogChange: (catalog: CatalogFilter) => void;
 }
 
 /**
@@ -27,7 +31,7 @@ interface FilterBarProps {
  *
  * @component
  */
-export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange }: FilterBarProps) {
+export default function FilterBar({ filters, setFilters, neighborhoods, programTypes, sort, onSortChange, catalog, onCatalogChange }: FilterBarProps) {
   function updateFilter(key: keyof SchoolFilters, value: string) {
     setFilters(prev => ({ ...prev, [key]: value }));
   }
@@ -66,6 +70,20 @@ export default function FilterBar({ filters, setFilters, neighborhoods, programT
           {programTypes.map((pt) => (
             <SelectItem key={pt} value={pt}>{pt}</SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={catalog || 'all'}
+        onValueChange={(v) => onCatalogChange(v === 'curated' || v === 'added' ? v : '')}
+      >
+        <SelectTrigger className="w-full md:w-36" aria-label="Filter by catalog">
+          <SelectValue placeholder="All schools" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All schools</SelectItem>
+          <SelectItem value="curated">Curated</SelectItem>
+          <SelectItem value="added">Added</SelectItem>
         </SelectContent>
       </Select>
 

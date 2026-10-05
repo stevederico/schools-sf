@@ -47,6 +47,7 @@ export default function SchoolDetailSheet({ school, isOpen, onClose }: SchoolDet
           <SheetDescription className="sr-only">Details for {school.name}</SheetDescription>
           <div className="flex flex-wrap gap-1.5 pt-2">
             <Badge variant="secondary">{isPreschool ? 'Preschool' : 'Upper School'}</Badge>
+            {school.curated === false && <Badge variant="outline">Added</Badge>}
             {school.program_type !== 'Preschool' && school.program_type !== 'Preschool/Daycare' && (
               <Badge variant="outline">{school.program_type}</Badge>
             )}

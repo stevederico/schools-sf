@@ -10,7 +10,7 @@ import SchoolCard from './SchoolCard';
 import SchoolDetailSheet from './SchoolDetailSheet';
 import { Heart, List, Map as MapIcon, School } from 'lucide-react';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
-import type { School as SchoolRecord, SortOption } from './types';
+import type { CatalogFilter, School as SchoolRecord, SortOption } from './types';
 
 const NeighborhoodMap = lazy(() => import('./NeighborhoodMap'));
 
@@ -27,6 +27,8 @@ export default function DirectoryView() {
   const favoritesOnly = searchParams.get('favorites') === '1';
   const sortParam = searchParams.get('sort');
   const sort: SortOption = sortParam === 'price-asc' || sortParam === 'price-desc' ? sortParam : '';
+  const setParam = searchParams.get('set');
+  const catalog: CatalogFilter = setParam === 'curated' || setParam === 'added' ? setParam : '';
 
   const highlightId = useMemo(() => {
     const id = searchParams.get('highlight');
@@ -37,6 +39,8 @@ export default function DirectoryView() {
   // Client-side filters: sector (public/private) from tuition, and favorites-only.
   const filteredSchools = useMemo(() => {
     let list = schools;
+    if (catalog === 'curated') list = list.filter((s) => s.curated !== false);
+    else if (catalog === 'added') list = list.filter((s) => s.curated === false);
     if (filters.sector) {
       const isPublic = (s: SchoolRecord) => (s.tuition || '').trim().startsWith('Public');
       if (filters.sector === 'public') list = list.filter(isPublic);
@@ -51,7 +55,14 @@ export default function DirectoryView() {
       list = [...list].sort((a, b) => compareTuition(a, b, direction));
     }
     return list;
-  }, [schools, filters.sector, favoritesOnly, favorites, sort]);
+  }, [schools, catalog, filters.sector, favoritesOnly, favorites, sort]);
+
+  function setCatalog(nextCatalog: CatalogFilter) {
+    const next = new URLSearchParams(searchParams);
+    if (nextCatalog) next.set('set', nextCatalog);
+    else next.delete('set');
+    setSearchParams(next, { replace: true });
+  }
 
   function setSort(nextSort: SortOption) {
     const next = new URLSearchParams(searchParams);
@@ -92,6 +103,8 @@ export default function DirectoryView() {
             programTypes={programTypes}
             sort={sort}
             onSortChange={setSort}
+            catalog={catalog}
+            onCatalogChange={setCatalog}
           />
         </div>
         <Button

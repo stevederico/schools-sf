@@ -30,6 +30,11 @@ export interface School {
   lat?: number;
   /** Longitude for map placement */
   lng?: number;
+  /**
+   * Original directory row. `false` is a CDSS center added later.
+   * Missing means curated, so an older payload still shows in the curated filter.
+   */
+  curated?: boolean;
 }
 
 /** Active filter state for the schools directory. */
@@ -48,3 +53,6 @@ export interface SchoolFilters {
 
 /** Sort option for the tuition column. '' means default (unsorted) order. */
 export type SortOption = '' | 'price-asc' | 'price-desc';
+
+/** Which catalog slice to show. '' means curated and added together. */
+export type CatalogFilter = '' | 'curated' | 'added';

@@ -53,6 +53,9 @@ export default function SchoolCard({ school, onClick }: SchoolCardProps) {
             <Badge variant="secondary" className="text-copy-sm">
               {isPreschool ? 'Preschool' : 'Upper'}
             </Badge>
+            {school.curated === false && (
+              <Badge variant="outline" className="text-copy-sm">Added</Badge>
+            )}
             <button
               type="button"
               onClick={handleFavorite}

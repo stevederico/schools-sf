@@ -1470,6 +1470,7 @@ fn school_json(school: &db::School) -> Json {
         ("lat", opt_num(school.lat)),
         ("lng", opt_num(school.lng)),
         ("school_type", json::s(school.school_type.clone())),
+        ("curated", Json::Bool(school.curated)),
     ])
 }
 
@@ -2414,15 +2415,17 @@ mod tests {
             "CREATE TABLE preschools (
                 id INTEGER PRIMARY KEY, name TEXT NOT NULL, neighborhood TEXT,
                 ages TEXT, hours TEXT, tuition TEXT, program_type TEXT, url TEXT,
-                address TEXT, lat REAL, lng REAL
+                address TEXT, lat REAL, lng REAL, curated INTEGER NOT NULL DEFAULT 1
             );
             CREATE TABLE upperschools (
                 id INTEGER PRIMARY KEY, name TEXT NOT NULL, neighborhood TEXT,
                 ages TEXT, hours TEXT, tuition TEXT, program_type TEXT, url TEXT,
-                address TEXT, lat REAL, lng REAL
+                address TEXT, lat REAL, lng REAL, curated INTEGER NOT NULL DEFAULT 1
             );
             INSERT INTO preschools (id, name, neighborhood, program_type, lat, lng)
                 VALUES (1, 'Alpha Preschool', 'Marina', 'Preschool', 1.5, -2.5);
+            INSERT INTO preschools (id, name, neighborhood, program_type, curated)
+                VALUES (2, 'Zed Center', 'Mission', 'Preschool', 0);
             INSERT INTO upperschools (id, name, neighborhood, program_type)
                 VALUES (1, 'Gamma School', 'Mission', 'K-8');",
         )
@@ -2446,10 +2449,16 @@ mod tests {
         assert_eq!(res.status, 200, "{}", String::from_utf8_lossy(&res.body));
         let body = json_body(&res);
         let rows = body.as_arr().expect("array");
-        assert_eq!(rows.len(), 2);
+        assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].get_str("name"), Some("Alpha Preschool"));
         assert_eq!(rows[0].get_str("school_type"), Some("preschool"));
         assert_eq!(rows[0].get("lat").and_then(Json::as_f64), Some(1.5));
+        assert_eq!(rows[0].get("curated").and_then(Json::as_bool), Some(true));
+        let zed = rows.iter().find(|row| row.get_str("name") == Some("Zed Center"));
+        assert_eq!(
+            zed.and_then(|row| row.get("curated")).and_then(Json::as_bool),
+            Some(false)
+        );
 
         let mut filtered = Request::for_test("GET", "/api/schools");
         filtered.query = "type=upperschool&q=gamma".into();

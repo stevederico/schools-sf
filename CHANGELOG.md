@@ -1,3 +1,9 @@
+0.16.0
+
+  Flag curated schools
+  Add licensed centers
+  Filter curated or added
+
 0.15.0
 
   Migrate skateboard 5.6

@@ -30,7 +30,7 @@ The backend is zero-crate Rust. `backend/Cargo.toml` `[dependencies]` stays empt
 - **Main view:** `src/components/DirectoryView.tsx` — unified list+map view, state deep-linked via URL params.
 - **Map:** `src/components/NeighborhoodMap.tsx` — react-leaflet, SVG pin icons, `FitBounds` helper auto-zooms to result set.
 - **Detail sheet:** `src/components/SchoolDetailSheet.tsx` — shadcn Sheet, includes "View on map" deep link.
-- **Filter bar:** `src/components/FilterBar.tsx` — neighborhood, program type, sector, favorites, sort.
+- **Filter bar:** `src/components/FilterBar.tsx` — neighborhood, program type, sector, catalog, favorites, sort.
 - **Data hooks:** `src/components/useSchools.ts` (fetch + filter), `src/components/useFavorites.ts` (localStorage).
 - **Tuition parser:** `src/components/tuitionSort.ts` — handles `$X–$Y/year`, `$X/month`, public schools, and unknowns. Tested in `tuitionSort.test.ts`.
 - **Icons:** named imports from `lucide-react`. Do not import `@stevederico/skateboard-ui/icons` or `DynamicIcon`.
@@ -40,15 +40,16 @@ The backend is zero-crate Rust. `backend/Cargo.toml` `[dependencies]` stays empt
 - `view=list` — switch to list view (map is the default, no param needed)
 - `favorites=1` — favorites-only filter
 - `sort=price-asc|price-desc` — tuition sort
+- `set=curated|added` — original catalog, or only the CDSS centers. Absent shows both
 - `highlight=<id>&type=<preschool|upperschool>` — marker highlight from detail sheet's "View on map"
 
 ### Backend
 - **Server:** `backend/src/` — zero-crate Rust (`cargo run`). Serves the built frontend from `../dist`.
-- **Schools DB:** `backend/databases/preschools.db` — opened read-only at startup. Two tables: `preschools` and `upperschools`.
+- **Schools DB:** `backend/databases/preschools.db` — opened read-only at startup. Two tables: `preschools` and `upperschools`. `curated = 1` is the original directory. `curated = 0` is the CDSS center import. `DELETE FROM preschools WHERE curated = 0` rolls that import back.
 - **Auth DB:** `backend/databases/PreschoolTmp.db` — created on demand from `backend/config.json`. Used only if auth flows are exercised.
 
 ### Schools API
-- `GET /api/schools` — filters: `type`, `neighborhood`, `program_type`, `q`. Returns union of both tables with a `school_type` discriminator.
+- `GET /api/schools` — filters: `type`, `neighborhood`, `program_type`, `q`. Returns union of both tables with a `school_type` discriminator and a `curated` boolean.
 - `GET /api/neighborhoods` — distinct neighborhoods across both tables.
 - `GET /api/program-types` — distinct program types across both tables.
 

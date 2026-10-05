@@ -1608,6 +1608,8 @@ pub struct School {
     pub lat: Option<f64>,
     /// Longitude.
     pub lng: Option<f64>,
+    /// `true` for the original directory. `false` for a CDSS center added later.
+    pub curated: bool,
 }
 
 fn query_schools(db: &Db, query: &SchoolQuery) -> Result<Vec<School>, DbError> {
@@ -1652,7 +1654,7 @@ fn school_select(kind: SchoolKind, query: &SchoolQuery) -> (String, Vec<Value>) 
         format!(" WHERE {}", conditions.join(" AND "))
     };
     let sql = format!(
-        "SELECT id, name, neighborhood, ages, hours, tuition, program_type, url, address, lat, lng, '{label}' AS school_type FROM {table}{where_sql}"
+        "SELECT id, name, neighborhood, ages, hours, tuition, program_type, url, address, lat, lng, curated, '{label}' AS school_type FROM {table}{where_sql}"
     );
     (sql, params)
 }
@@ -1682,6 +1684,7 @@ fn school_from_row(row: &Row) -> Result<School, DbError> {
         address: owned_text(row, "address"),
         lat: row.real("lat"),
         lng: row.real("lng"),
+        curated: row.int("curated").unwrap_or(1) != 0,
     })
 }
 
@@ -2449,7 +2452,8 @@ mod tests {
                 address TEXT,
                 lat REAL,
                 lng REAL,
-                notes TEXT
+                notes TEXT,
+                curated INTEGER NOT NULL DEFAULT 1
             );
             CREATE TABLE upperschools (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2463,7 +2467,8 @@ mod tests {
                 address TEXT,
                 lat REAL,
                 lng REAL,
-                notes TEXT
+                notes TEXT,
+                curated INTEGER NOT NULL DEFAULT 1
             );",
         )
         .expect("schema");
@@ -2515,6 +2520,7 @@ mod tests {
         assert_eq!(alpha.school_type, "preschool");
         assert_eq!(alpha.lat, Some(37.5));
         assert_eq!(alpha.lng, Some(-122.5));
+        assert!(alpha.curated);
         assert!(all
             .iter()
             .any(|s| s.name == "Null Hood" && s.neighborhood.is_none()));
@@ -2583,6 +2589,17 @@ mod tests {
         assert!(schools.iter().any(|s| s.school_type == "preschool"));
         assert!(schools.iter().any(|s| s.school_type == "upperschool"));
         assert!(schools.iter().all(|s| !s.name.is_empty()));
+        let curated_preschools = schools
+            .iter()
+            .filter(|s| s.school_type == "preschool" && s.curated)
+            .count();
+        let added = schools.iter().filter(|s| !s.curated).count();
+        assert_eq!(curated_preschools, 65, "the original preschool catalog stays flagged");
+        assert!(added > 200, "CDSS centers are loaded for the added filter, got {added}");
+        assert!(schools
+            .iter()
+            .filter(|s| s.school_type == "upperschool")
+            .all(|s| s.curated));
         let neighborhoods = pool.list_neighborhoods().expect("neighborhoods");
         assert!(neighborhoods.windows(2).all(|pair| pair[0] <= pair[1]));
         assert!(neighborhoods.iter().all(|name| !name.is_empty()));
