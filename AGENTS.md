@@ -74,7 +74,7 @@ The image builds the Vite frontend and the Rust binary. `preschools.db` is copie
 ## Deployment
 
 Deployed to Railway project `bixby`, service `schools`:
-- **URL:** https://schools-production-f5eb.up.railway.app
+- **URL:** https://schools.bixbyapps.com
 - **Volume:** `schools-volume` mounted at `/app/databases` so the auth/user DB survives redeploys. The read-only schools DB lives at `/app/backend/databases/preschools.db` inside the image — it doesn't need persistence.
 - **Env vars not yet set:** `JWT_SECRET`, `STRIPE_KEY`, `STRIPE_ENDPOINT_SECRET`, `CORS_ORIGINS`, `FRONTEND_URL`. Auth and payments will error until these exist. The schools browse experience works without them.
 - **Deploy command:** `railway up` (run from repo root while linked to the `schools` service). Never use git-based deploy.
