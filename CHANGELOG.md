@@ -1,3 +1,8 @@
+0.19.1
+
+  Remove isSubscriber route doc
+  Point to usage check
+
 0.19.0
 
   the host deploy steps
