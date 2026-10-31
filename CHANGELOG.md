@@ -1,3 +1,7 @@
+0.19.2
+
+  Pin base images
+
 0.19.1
 
   Remove isSubscriber route doc
