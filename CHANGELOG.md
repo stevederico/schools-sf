@@ -1,3 +1,7 @@
+0.19.3
+
+  Bump skateboard-ui 5.11.4
+
 0.19.2
 
   Pin base images
