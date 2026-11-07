@@ -1,3 +1,8 @@
+0.20.0
+
+  Generic deploy notes
+  Example test email
+
 0.19.3
 
   Bump skateboard-ui 5.11.4

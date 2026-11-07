@@ -73,31 +73,11 @@ The image builds the Vite frontend and the Rust binary. `preschools.db` is copie
 
 ## Deployment
 
-Deployed on a VPS `server` via the host (project `bixby`, app `schools`, applicationId `APP_ID`, Swarm service `schools`):
-- **URL:** https://schools.bixbyapps.com (routed by bixby-proxy to `schools:8080`)
-- **Port:** `PORT=8080`, Swarm health check overridden to `http://127.0.0.1:8080/api/health`.
-- **No volume.** All DB files live inside the container at `/app/backend/databases` (`preschools.db` from the image, an empty `PreschoolTmp.db`). A redeploy wipes anything written there. Fine today: no login, no Stripe plans.
-- **Env set:** `APP_NAME`, `CORS_ORIGINS`, `FRONTEND_URL`, `JWT_SECRET`, `PORT`. Not set: `STRIPE_KEY`, `STRIPE_ENDPOINT_SECRET` (payments will error until these exist).
-- **History:** Railway (project `bixby`, service `schools`, volume `schools-volume`) is retired since 2026-10-27. That volume was never copied. Never `railway up`; only Steve deletes Railway leftovers.
+Ships as one Docker image (see `Dockerfile`) that serves the frontend and the API on `PORT`.
 
-Deploy: commit first, then build from a clean tree, push to the server registry, save the new tag, deploy. A plain the host redeploy reuses the pinned image.
-
-```bash
-SHA=$(git rev-parse --short HEAD)
-D=$(mktemp -d); git archive HEAD | tar -x -C "$D"
-docker build --platform linux/amd64 -t localhost:5000/schools:$SHA "$D"
-ssh -f -N -L 127.0.0.1:5000:localhost:5000 server
-docker push localhost:5000/schools:$SHA
-kill $(pgrep -f "^ssh -f -N -L 127.0.0.1:5000:localhost:5000 server")
-APP=APP_ID
-echo "{\"applicationId\":\"$APP\",\"dockerImage\":\"localhost:5000/schools:$SHA\",\"username\":\"\",\"password\":\"\",\"registryUrl\":\"\"}" \
-  | deploy-api POST application.saveDockerProvider
-echo "{\"applicationId\":\"$APP\"}" | deploy-api POST application.deploy
-ssh server 'sudo docker service ls | grep schools'   # 1/1 on the new tag
-curl -s -A "Mozilla/5.0 (X11; Linux x86_64) Chrome/130" https://schools.bixbyapps.com/api/health
-```
-
-Rollback: save the previous tag and deploy. Full runbook: the private ops notes.
+- **Health check:** `GET /api/health`
+- **Env:** `PORT`, `JWT_SECRET`, `CORS_ORIGINS`, `FRONTEND_URL`, optional `APP_NAME`. Stripe vars are optional; the app has no paid plans.
+- **Data:** `preschools.db` is baked into the image at `/app/backend/databases`.
 
 ## Tuition Data
 
