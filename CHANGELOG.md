@@ -1,3 +1,7 @@
+0.20.1
+
+  Sync Settings version
+
 0.20.0
 
   Generic deploy notes
