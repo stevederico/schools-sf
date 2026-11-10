@@ -1,3 +1,7 @@
+0.20.2
+
+  Bump debian runtime base to bookworm-20261104-slim (apt 2.6.2)
+
 0.20.1
 
   Sync Settings version
