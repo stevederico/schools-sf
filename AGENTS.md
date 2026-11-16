@@ -99,7 +99,7 @@ OCR was used for Stella Maris, Little School, Little Bee, and similar image-only
 
 `package.json` has a `skateboardVersion` field (currently `5.6.0`) indicating which boilerplate release was used. Reference repo: https://github.com/stevederico/skateboard. Run `node scripts/update-skateboard.js` to 3-way merge template changes onto local edits, then diff and port carefully — **never** auto-update `constants.json`, `src/components/*`, or `backend/config.json`. Always consult before applying boilerplate changes.
 
-`@stevederico/skateboard-ui` is pinned exact at `5.1.0`. Install it with `npm install @stevederico/skateboard-ui@5.1.0 --save-exact --min-release-age=0`. Do not put `--min-release-age=0` on any other install command.
+`@stevederico/skateboard-ui` is pinned exact at `5.19.0`. Install it with `npm install @stevederico/skateboard-ui@5.19.0 --save-exact --min-release-age=0`. Do not put `--min-release-age=0` on any other install command.
 
 ## TypeScript Standards
 

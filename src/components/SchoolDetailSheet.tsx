@@ -1,7 +1,7 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@stevederico/skateboard-ui/shadcn/ui/sheet';
-import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
-import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
-import { Clock, DollarSign, ExternalLink, Heart, MapPin, Users } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@stevederico/skateboard-ui/ui/sheet';
+import { Badge } from '@stevederico/skateboard-ui/ui/badge';
+import { Button } from '@stevederico/skateboard-ui/ui/button';
+import { Clock, DollarSign, ExternalLink, Heart, MapPin, Users } from '@stevederico/skateboard-ui/icons';
 import { useSafeNavigate } from '@stevederico/skateboard-ui/Utilities';
 import { useFavorites } from './useFavorites';
 import type { School } from './types';

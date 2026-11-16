@@ -1,15 +1,15 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
-import { useSearchParams } from 'react-router';
-import { Spinner } from '@stevederico/skateboard-ui/shadcn/ui/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/shadcn/ui/toggle-group';
+import { useSearchParams } from '@stevederico/skateboard-ui/router';
+import { Spinner } from '@stevederico/skateboard-ui/ui/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@stevederico/skateboard-ui/ui/toggle-group';
 import { useSchools } from './useSchools';
 import { useFavorites, favoriteKey } from './useFavorites';
 import { compareTuition } from './tuitionSort';
 import FilterBar from './FilterBar';
 import SchoolCard from './SchoolCard';
 import SchoolDetailSheet from './SchoolDetailSheet';
-import { Heart, List, Map as MapIcon, School } from 'lucide-react';
-import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
+import { Heart, List, Map as MapIcon, School } from '@stevederico/skateboard-ui/icons';
+import { Button } from '@stevederico/skateboard-ui/ui/button';
 import type { CatalogFilter, School as SchoolRecord, SortOption } from './types';
 
 const NeighborhoodMap = lazy(() => import('./NeighborhoodMap'));

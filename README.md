@@ -98,7 +98,7 @@ Stripe variables are optional — the site runs without payments.
 | **react-leaflet** | v5 | Map rendering |
 | **Rust** | stable | Backend server (zero-crate) |
 | **SQLite** | system libsqlite3 | Schools directory and optional auth |
-| **skateboard-ui** | 5.1.0 | App shell and shadcn primitives |
+| **skateboard-ui** | 5.19.0 | App shell and shadcn primitives |
 
 <br />
 

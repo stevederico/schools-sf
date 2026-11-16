@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getState } from '@stevederico/skateboard-ui/Context';
 import { useSafeNavigate } from '@stevederico/skateboard-ui/Utilities';
-import { Filter, MapPin, School } from 'lucide-react';
+import { Filter, MapPin, School } from '@stevederico/skateboard-ui/icons';
 import {
   Command,
   CommandDialog,
@@ -11,7 +11,7 @@ import {
   CommandGroup,
   CommandItem,
   CommandShortcut,
-} from '@stevederico/skateboard-ui/shadcn/ui/command';
+} from '@stevederico/skateboard-ui/ui/command';
 /** Lucide icon for a constants.json page entry. Names are the app's known set. */
 function PageIcon({ name }: { name: string }) {
   const className = 'shrink-0 text-muted-foreground';

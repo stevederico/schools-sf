@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@stevederico/skateboard-ui/shadcn/ui/card';
-import { Badge } from '@stevederico/skateboard-ui/shadcn/ui/badge';
-import { Clock, DollarSign, Heart, Users } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@stevederico/skateboard-ui/ui/card';
+import { Badge } from '@stevederico/skateboard-ui/ui/badge';
+import { Clock, DollarSign, Heart, Users } from '@stevederico/skateboard-ui/icons';
 import { useFavorites } from './useFavorites';
 import type { School } from './types';
 
